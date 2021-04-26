@@ -12,53 +12,45 @@ int main(int argc, char const *argv[])
         FILE* input = fopen(argv[1], "r");
 	    FILE* output = fopen(argv[2], "w");
 
-    //32KiB MEMORY
-        u_char * MEM = (u_char*) calloc(32768, sizeof(u_char));
+    //32KiB MEMORY  => (32768/4) = 8192
+        uint32_t * MEM = (uint32_t*) calloc(8192, sizeof(uint32_t));
 
+    //Insertion of Hexadecimals to MEMORY
+
+        uint32_t line = 0;
+        uint32_t memIndex = 0;
+        while (std::fscanf(input, "%i", &line) != EOF)
+        {
+            MEM[memIndex] = line;
+            ++memIndex;
+        }
     //32 REGISTERS - [0..31]
         uint32_t * REGISTER = (uint32_t *) calloc(32, sizeof(uint32_t));
-
-        //IR - Instruction Register
-        uint32_t *IR = &REGISTER[28];
-        *IR = 0x00000000;
 
         //PC - PROGRAM COUNTER
         uint32_t *PC = &REGISTER[29];
         *PC = 0x00000000;
+
+        //IR - Instruction Register
+        uint32_t *IR = &REGISTER[28];
+        *IR = MEM[*PC];
 
         //SP - STACK POINTER
         uint32_t *SP = &REGISTER[30];
 
         //SR - STATUS REGISTER
         uint32_t *SR = &REGISTER[31];
+        
 
-
-    //Array of Hexadecimal Commands
-        int * HEXADECIMAL;
-
-        uint32_t line;
-        int totalHexaFile = 0;
-
-        while (fscanf(input, "%i", &line) != EOF)
-            ++totalHexaFile;
-
-        HEXADECIMAL = (int*) malloc(sizeof(int) * totalHexaFile);
-
-        rewind(input);
-
-        int hexaIndex = 0;
-        while (fscanf(input, "%i", &line) != EOF)
-            HEXADECIMAL[hexaIndex++] = line;
-
-    // ------------- START OF PROGRAM -------------
+    // // ------------- START OF PROGRAM -------------
     
-    fprintf(output, "[START OF SIMULATION]\n");
+    std::fprintf(output, "[START OF SIMULATION]\n");
 
     uint32_t opcode = 0;
 
-    for (int i = 0; i < totalHexaFile; i++)
+    while(*IR == 0xFC000000)
     {
-        opcode = (HEXADECIMAL[i] & 0xFC000000) >> 26;
+        opcode = (*IR & 0xFC000000) >> 26;
 
         switch (opcode)
         {
@@ -66,17 +58,23 @@ int main(int argc, char const *argv[])
         // TYPE U - NOP/MOV
         case 0X00:
             
-            if (HEXADECIMAL[i] == 0) fprintf(output, "0X%08X: mov r0,0\t R0=0X%08X", *IR, 0);
+            if (*IR == 0){
+                std::fprintf(output, "0X%08X: mov r0,0\t R0=0X%08X", *PC, 0);
+                
+                //UPDATING PC & IR VALUES
+                *PC = *PC + 4;
+                *IR = MEM[*PC];
+            }
             else {
 
                 uint32_t Z = 0;
                 //TYPE U - Z MASK:
-                Z = (HEXADECIMAL[i] & 0x03E00000) >> 21;
+                Z = (*IR & 0x03E00000) >> 21;
 
-                uint32_t attributionValue = (HEXADECIMAL[i] & 0x001FFFFF);
+                uint32_t attributionValue = (*IR & 0x001FFFFF);
                 REGISTER[Z] = attributionValue;
 
-                fprintf(output, "0X%08X: mov r%i, %i\t R%i=0X%08X", *IR, Z, attributionValue, attributionValue);
+                std::fprintf(output, "0X%08X: mov r%i, %i\t R%i=0X%08X", *PC, Z, attributionValue, Z, attributionValue);
 
                 //UPDATING PC & IR VALUES
                 *PC = *PC + 4;
@@ -91,9 +89,9 @@ int main(int argc, char const *argv[])
 
             uint32_t Z = 0;
             //Z MASK:
-            Z = (HEXADECIMAL[i] & 0x03E00000) >> 21;
+            Z = (*IR & 0x03E00000) >> 21;
 
-            uint32_t attributionValue = (HEXADECIMAL[i] & 0x001FFFFF);
+            uint32_t attributionValue = (*IR & 0x001FFFFF);
             
             //MASK FOR X BIT 
             uint32_t bitX = (attributionValue & 0X00100000) >> 20;
@@ -102,7 +100,7 @@ int main(int argc, char const *argv[])
 
             REGISTER[Z] = attributionValue;
 
-            fprintf(output, "0X%08X: movs r%i, %i\t R%i=0X%08X", *IR, Z, attributionValue, Z, attributionValue);
+            std::fprintf(output, "0X%08X: movs r%i, %i\t R%i=0X%08X", *PC, Z, attributionValue, Z, attributionValue);
 
             //UPDATING PC & IR VALUES
             *PC = *PC + 4;
@@ -115,15 +113,212 @@ int main(int argc, char const *argv[])
 
             uint32_t Z = 0;
             //Z MASK:
-            Z = (HEXADECIMAL[i] & 0x03E00000) >> 21;
+            Z = (*IR & 0x03E00000) >> 21;
 
             uint32_t X = 0;
             //X MASK:
-            X = (HEXADECIMAL[i] & 0x001F0000) >> 16;
+            X = (*IR & 0x001F0000) >> 16;
 
             uint32_t Y = 0;
             //Y MASK:
-            Y = (HEXADECIMAL[i] & 0x03E00000) >> 21;
+            Y = (*IR & 0x0000F800) >> 11;
+
+            REGISTER[Z] = ( REGISTER[X] + REGISTER[Y] );
+
+            //ZN CHECK -> R[Z] = 0
+            if (REGISTER[Z] == 0) {
+                *SR = 0x00000040;
+
+                std::fprintf(output, "0X%08X: add r%i,r%i,r%i\t R%i=R%i+R%i=0X%08X, SR=0X%08X", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
+
+                *PC = *PC + 4;
+                *IR = MEM[*PC];
+
+                break;
+            }
+
+            //SN CHECK -> R[Z]31 = 1
+
+            uint32_t checkSN = REGISTER[Z] >> 31;
+
+            if (checkSN == 1) {
+                *SR = 0x00000010;
+
+                std::fprintf(output, "0X%08X: add r%i,r%i,r%i\t R%i=R%i+R%i=0X%08X, SR=0X%08X", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
+
+                *PC = *PC + 4;
+                *IR = MEM[*PC];
+
+                break;
+            }
+
+            //CY CHECK = R[Z]32 = 1
+            uint64_t result = ( REGISTER[X] + REGISTER[Y] ); 
+            result = result >> 32;
+
+            if (result == 1) {
+                *SR = 0X00000001;
+
+                std::fprintf(output, "0X%08X: add r%i,r%i,r%i\t R%i=R%i+R%i=0X%08X, SR=0X%08X", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
+
+                *PC = *PC + 4;
+                *IR = MEM[*PC];
+
+                break;
+            }
+
+            //OV CHECK
+            uint32_t RX31 =  REGISTER[X] >> 31;
+            uint32_t RY31 =  REGISTER[Y] >> 31;
+            uint32_t RZ31 =  REGISTER[Z] >> 31;
+
+            if ( (RX31 == RY31) && (RZ31 != RX31) ) {
+                *SR = 0X00000008;
+
+                std::fprintf(output, "0X%08X: add r%i,r%i,r%i\t R%i=R%i+R%i=0X%08X, SR=0X%08X", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
+
+                *PC = *PC + 4;
+                *IR = MEM[*PC];
+
+                break;
+            }
+
+
+            *SR = 0X00000002;
+            std::fprintf(output, "0X%08X: add r%i,r%i,r%i\t R%i=R%i+R%i=0X%08X, SR=0X%08X", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
+
+
+            break;
+        
+        //TYPE U - SUB
+        case 0X03:
+
+            uint32_t Z = 0;
+            //Z MASK:
+            Z = (*IR & 0x03E00000) >> 21;
+
+            uint32_t X = 0;
+            //X MASK:
+            X = (*IR & 0x001F0000) >> 16;
+
+            uint32_t Y = 0;
+            //Y MASK:
+            Y = (*IR & 0x0000F800) >> 11;
+
+            REGISTER[Z] = ( REGISTER[X] - REGISTER[Y] );
+
+            //ZN CHECK -> R[Z] = 0
+            if (REGISTER[Z] == 0) {
+                *SR = 0x00000040;
+
+                std::fprintf(output, "0X%08X: sub r%i,r%i,r%i\t R%i=R%i-R%i=0X%08X, SR=0X%08X", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
+
+                *PC = *PC + 4;
+                *IR = MEM[*PC];
+
+                break;
+            }
+
+            //SN CHECK -> R[Z]31 = 1
+
+            uint32_t checkSN = REGISTER[Z] >> 31;
+
+            if (checkSN == 1) {
+                *SR = 0x00000010;
+
+                std::fprintf(output, "0X%08X: sub r%i,r%i,r%i\t R%i=R%i-R%i=0X%08X, SR=0X%08X", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
+
+                *PC = *PC + 4;
+                *IR = MEM[*PC];
+
+                break;
+            }
+
+            //CY CHECK = R[Z]32 = 1
+            uint64_t result = ( REGISTER[X] + REGISTER[Y] ); 
+            result = result >> 32;
+
+            if (result == 1) {
+                *SR = 0X00000001;
+
+                std::fprintf(output, "0X%08X: sub r%i,r%i,r%i\t R%i=R%i-R%i=0X%08X, SR=0X%08X", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
+
+                *PC = *PC + 4;
+                *IR = MEM[*PC];
+
+                break;
+            }
+
+            //OV CHECK
+            uint32_t RX31 =  REGISTER[X] >> 31;
+            uint32_t RY31 =  REGISTER[Y] >> 31;
+            uint32_t RZ31 =  REGISTER[Z] >> 31;
+
+            if ( (RX31 != RY31) && (RZ31 != RX31) ) {
+                *SR = 0X00000008;
+
+                std::fprintf(output, "0X%08X: sub r%i,r%i,r%i\t R%i=R%i-R%i=0X%08X, SR=0X%08X", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
+
+                *PC = *PC + 4;
+                *IR = MEM[*PC];
+
+                break;
+            }
+
+
+            *SR = 0X00000000;
+            std::fprintf(output, "0X%08X: add r%i,r%i,r%i\t R%i=R%i-R%i=0X%08X, SR=0X%08X", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
+
+            break;
+
+        //MUL
+        case 0X04:
+
+            uint32_t Z = 0;
+            //Z MASK:
+            Z = (*IR & 0x03E00000) >> 21;
+
+            uint32_t X = 0;
+            //X MASK:
+            X = (*IR & 0x001F0000) >> 16;
+
+            uint32_t Y = 0;
+            //Y MASK:
+            Y = (*IR & 0x0000F800) >> 11;
+
+            uint64_t result = REGISTER[X] * REGISTER[Y];
+
+            uint32_t RI4 = ( *IR & 0X0000001F );
+
+            REGISTER[Z] = result << 32;
+            REGISTER[RI4] = result >> 32;
+
+            //ZN CASE:
+            if (result == 0) {
+                *SR = 0x00000040;
+
+                std::fprintf(output, "0X%08X: mul r%i,r%i,r%i,r%i\t R%i:R%i=R%i*R%i=0X%016X, SR=0X%08X", *PC, RI4, Z, X, Y, RI4, Z, X, Y, result, *SR);
+
+                *PC = *PC + 4;
+                *IR = MEM[*PC];
+
+                break;
+            }
+
+            //CY CASE:
+            if (REGISTER[RI4] != 0) {
+                *SR = 0X00000001;
+
+                std::fprintf(output, "0X%08X: mul r%i,r%i,r%i,r%i\t R%i:R%i=R%i*R%i=0X%016X, SR=0X%08X", *PC, RI4, Z, X, Y, RI4, Z, X, Y, result, *SR);
+
+                *PC = *PC + 4;
+                *IR = MEM[*PC];
+
+                break;
+            }
+
+            *SR = 0X00000000;
+            std::fprintf(output, "0X%08X: mul r%i,r%i,r%i,r%i\t R%i:R%i=R%i*R%i=0X%016X, SR=0X%08X", *PC, RI4, Z, X, Y, RI4, Z, X, Y, result, *SR);
 
             break;
         
@@ -135,11 +330,10 @@ int main(int argc, char const *argv[])
     }
         
 
-    // free(MEM);
-    // free(REGISTER);
-    // free(HEXADECIMAL);
-    fclose(input);
-    fclose(output);
+    std::free(MEM);
+    std::free(REGISTER);
+    std::fclose(input);
+    std::fclose(output);
 
     return 0;
 }
