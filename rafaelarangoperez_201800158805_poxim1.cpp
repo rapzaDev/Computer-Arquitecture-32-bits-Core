@@ -1,6 +1,7 @@
 #include <iostream>
 #include <stdint.h>
 #include <string>
+#include <math.h>
 
 using namespace std;
 
@@ -59,7 +60,7 @@ int main(int argc, char const *argv[])
         case 0X00:
             
             if (*IR == 0){
-                std::fprintf(output, "0X%08X: mov r0,0\t R0=0X%08X", *PC, 0);
+                std::fprintf(output, "0X%08X:\tmov r0,0\tR0=0X%08X", *PC, 0);
                 
                 //UPDATING PC & IR VALUES
                 *PC = *PC + 4;
@@ -74,7 +75,7 @@ int main(int argc, char const *argv[])
                 uint32_t attributionValue = (*IR & 0x001FFFFF);
                 REGISTER[Z] = attributionValue;
 
-                std::fprintf(output, "0X%08X: mov r%i, %i\t R%i=0X%08X", *PC, Z, attributionValue, Z, attributionValue);
+                std::fprintf(output, "0X%08X:\tmov r%i, %i\tR%i=0X%08X", *PC, Z, attributionValue, Z, attributionValue);
 
                 //UPDATING PC & IR VALUES
                 *PC = *PC + 4;
@@ -100,7 +101,7 @@ int main(int argc, char const *argv[])
 
             REGISTER[Z] = attributionValue;
 
-            std::fprintf(output, "0X%08X: movs r%i, %i\t R%i=0X%08X", *PC, Z, attributionValue, Z, attributionValue);
+            std::fprintf(output, "0X%08X:\tmovs r%i,%i\tR%i=0X%08X", *PC, Z, attributionValue, Z, attributionValue);
 
             //UPDATING PC & IR VALUES
             *PC = *PC + 4;
@@ -129,7 +130,7 @@ int main(int argc, char const *argv[])
             if (REGISTER[Z] == 0) {
                 *SR = 0x00000040;
 
-                std::fprintf(output, "0X%08X: add r%i,r%i,r%i\t R%i=R%i+R%i=0X%08X, SR=0X%08X", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
+                std::fprintf(output, "0X%08X:\tadd r%i,r%i,r%i\tR%i=R%i+R%i=0X%08X, SR=0X%08X", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
 
                 *PC = *PC + 4;
                 *IR = MEM[*PC];
@@ -144,7 +145,7 @@ int main(int argc, char const *argv[])
             if (checkSN == 1) {
                 *SR = 0x00000010;
 
-                std::fprintf(output, "0X%08X: add r%i,r%i,r%i\t R%i=R%i+R%i=0X%08X, SR=0X%08X", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
+                std::fprintf(output, "0X%08X:\tadd r%i,r%i,r%i\tR%i=R%i+R%i=0X%08X, SR=0X%08X", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
 
                 *PC = *PC + 4;
                 *IR = MEM[*PC];
@@ -159,7 +160,7 @@ int main(int argc, char const *argv[])
             if (result == 1) {
                 *SR = 0X00000001;
 
-                std::fprintf(output, "0X%08X: add r%i,r%i,r%i\t R%i=R%i+R%i=0X%08X, SR=0X%08X", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
+                std::fprintf(output, "0X%08X:\tadd r%i,r%i,r%i\tR%i=R%i+R%i=0X%08X, SR=0X%08X", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
 
                 *PC = *PC + 4;
                 *IR = MEM[*PC];
@@ -175,7 +176,7 @@ int main(int argc, char const *argv[])
             if ( (RX31 == RY31) && (RZ31 != RX31) ) {
                 *SR = 0X00000008;
 
-                std::fprintf(output, "0X%08X: add r%i,r%i,r%i\t R%i=R%i+R%i=0X%08X, SR=0X%08X", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
+                std::fprintf(output, "0X%08X:\tadd r%i,r%i,r%i\tR%i=R%i+R%i=0X%08X, SR=0X%08X", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
 
                 *PC = *PC + 4;
                 *IR = MEM[*PC];
@@ -185,7 +186,7 @@ int main(int argc, char const *argv[])
 
 
             *SR = 0X00000002;
-            std::fprintf(output, "0X%08X: add r%i,r%i,r%i\t R%i=R%i+R%i=0X%08X, SR=0X%08X", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
+            std::fprintf(output, "0X%08X:\tadd r%i,r%i,r%i\tR%i=R%i+R%i=0X%08X, SR=0X%08X", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
 
 
             break;
@@ -211,7 +212,7 @@ int main(int argc, char const *argv[])
             if (REGISTER[Z] == 0) {
                 *SR = 0x00000040;
 
-                std::fprintf(output, "0X%08X: sub r%i,r%i,r%i\t R%i=R%i-R%i=0X%08X, SR=0X%08X", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
+                std::fprintf(output, "0X%08X:\tsub r%i,r%i,r%i\tR%i=R%i-R%i=0X%08X, SR=0X%08X", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
 
                 *PC = *PC + 4;
                 *IR = MEM[*PC];
@@ -226,7 +227,7 @@ int main(int argc, char const *argv[])
             if (checkSN == 1) {
                 *SR = 0x00000010;
 
-                std::fprintf(output, "0X%08X: sub r%i,r%i,r%i\t R%i=R%i-R%i=0X%08X, SR=0X%08X", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
+                std::fprintf(output, "0X%08X:\tsub r%i,r%i,r%i\tR%i=R%i-R%i=0X%08X, SR=0X%08X", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
 
                 *PC = *PC + 4;
                 *IR = MEM[*PC];
@@ -241,7 +242,7 @@ int main(int argc, char const *argv[])
             if (result == 1) {
                 *SR = 0X00000001;
 
-                std::fprintf(output, "0X%08X: sub r%i,r%i,r%i\t R%i=R%i-R%i=0X%08X, SR=0X%08X", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
+                std::fprintf(output, "0X%08X:\tsub r%i,r%i,r%i\tR%i=R%i-R%i=0X%08X, SR=0X%08X", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
 
                 *PC = *PC + 4;
                 *IR = MEM[*PC];
@@ -257,7 +258,7 @@ int main(int argc, char const *argv[])
             if ( (RX31 != RY31) && (RZ31 != RX31) ) {
                 *SR = 0X00000008;
 
-                std::fprintf(output, "0X%08X: sub r%i,r%i,r%i\t R%i=R%i-R%i=0X%08X, SR=0X%08X", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
+                std::fprintf(output, "0X%08X:\tsub r%i,r%i,r%i\tR%i=R%i-R%i=0X%08X, SR=0X%08X", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
 
                 *PC = *PC + 4;
                 *IR = MEM[*PC];
@@ -267,60 +268,184 @@ int main(int argc, char const *argv[])
 
 
             *SR = 0X00000000;
-            std::fprintf(output, "0X%08X: add r%i,r%i,r%i\t R%i=R%i-R%i=0X%08X, SR=0X%08X", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
+            std::fprintf(output, "0X%08X:\tadd r%i,r%i,r%i\tR%i=R%i-R%i=0X%08X, SR=0X%08X", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
 
             break;
 
-        //MUL
+        //MUL / SLL
         case 0X04:
+            uint32_t checkIsOp = (*IR & 0X00000700) >> 8;
 
-            uint32_t Z = 0;
-            //Z MASK:
-            Z = (*IR & 0x03E00000) >> 21;
+            //If is MUL:
+            if (checkIsOp == 0) {
+                
+                uint32_t Z = 0;
+                //Z MASK:
+                Z = (*IR & 0x03E00000) >> 21;
 
-            uint32_t X = 0;
-            //X MASK:
-            X = (*IR & 0x001F0000) >> 16;
+                uint32_t X = 0;
+                //X MASK:
+                X = (*IR & 0x001F0000) >> 16;
 
-            uint32_t Y = 0;
-            //Y MASK:
-            Y = (*IR & 0x0000F800) >> 11;
+                uint32_t Y = 0;
+                //Y MASK:
+                Y = (*IR & 0x0000F800) >> 11;
 
-            uint64_t result = REGISTER[X] * REGISTER[Y];
+                uint64_t result = (uint64_t)REGISTER[X] * (uint64_t)REGISTER[Y];
 
-            uint32_t RI4 = ( *IR & 0X0000001F );
+                uint32_t RI4 = ( *IR & 0X0000001F );
 
-            REGISTER[Z] = result << 32;
-            REGISTER[RI4] = result >> 32;
+                REGISTER[Z] = ( result & 0X00000000FFFFFFFF );
 
-            //ZN CASE:
-            if (result == 0) {
-                *SR = 0x00000040;
+                REGISTER[RI4] = result >> 32;
 
-                std::fprintf(output, "0X%08X: mul r%i,r%i,r%i,r%i\t R%i:R%i=R%i*R%i=0X%016X, SR=0X%08X", *PC, RI4, Z, X, Y, RI4, Z, X, Y, result, *SR);
+                //ZN CASE:
+                if (result == 0) {
+                    *SR = 0x00000040;
 
-                *PC = *PC + 4;
-                *IR = MEM[*PC];
+                    std::fprintf(output, "0X%08X:\tmul r%i,r%i,r%i,r%i\tR%i:R%i=R%i*R%i=0X%016lX, SR=0X%08X", *PC, RI4, Z, X, Y, RI4, Z, X, Y, result, *SR);
+
+                    *PC = *PC + 4;
+                    *IR = MEM[*PC];
+
+                    break;
+                }
+
+                //CY CASE:
+                if (REGISTER[RI4] != 0) {
+                    *SR = 0X00000001;
+
+                    std::fprintf(output, "0X%08X:\tmul r%i,r%i,r%i,r%i\tR%i:R%i=R%i*R%i=0X%016lX, SR=0X%08X", *PC, RI4, Z, X, Y, RI4, Z, X, Y, result, *SR);
+
+                    *PC = *PC + 4;
+                    *IR = MEM[*PC];
+
+                    break;
+                }
+
+                *SR = 0X00000000;
+                std::fprintf(output, "0X%08X:\tmul r%i,r%i,r%i,r%i\tR%i:R%i=R%i*R%i=0X%016lX, SR=0X%08X", *PC, RI4, Z, X, Y, RI4, Z, X, Y, result, *SR);
+
+                break;
+
+            }
+            
+            //If is SLL:
+            if (checkIsOp == 0X00000001){
+                
+                uint32_t Z = 0;
+                //Z MASK:
+                Z = (*IR & 0x03E00000) >> 21;
+
+                uint32_t X = 0;
+                //X MASK:
+                X = (*IR & 0x001F0000) >> 16;
+
+                uint32_t Y = 0;
+                //Y MASK:
+                Y = (*IR & 0x0000F800) >> 11;
+
+                uint32_t RI4 = ( *IR & 0X0000001F );
+
+                //Adding RZ value first:
+                uint64_t result = REGISTER[Z];
+                result = result << 32;
+
+                //Adding RY value:
+                result = (result | REGISTER[Y]);
+
+                //Applying offset:
+                uint32_t powV = RI4 + 1; 
+                uint32_t offset = pow(2, powV);
+                result = result << offset;
+
+                //Separating result: 
+                REGISTER[X] = (result & 0X00000000FFFFFFFF);
+                REGISTER[Z] = result >> 32;
+
+                //ZN CASE:
+                if (result == 0) {
+                    *SR = 0x00000040;
+
+                    std::fprintf(output, "0X%08X:\tsll r%i,r%i,r%i,%i\tR%i:R%i=R%i:R%i<<%i=0X%016X, SR=0X%08X", *PC, Z, X, Y, offset, Z, X, Z, Y, offset, result, *SR);
+
+                    *PC = *PC + 4;
+                    *IR = MEM[*PC];
+
+                    break;
+                }
+
+                //CY CASE:
+                if (REGISTER[Z] != 0) {
+                    *SR = 0X00000001;
+
+                    std::fprintf(output, "0X%08X:\tsll r%i,r%i,r%i,%i\tR%i:R%i=R%i:R%i<<%i=0X%016X, SR=0X%08X", *PC, Z, X, Y, offset, Z, X, Z, Y, offset, result, *SR);
+
+                    *PC = *PC + 4;
+                    *IR = MEM[*PC];
+
+                    break;
+                }
+
+                *SR = 0X00000000;
+                std::fprintf(output, "0X%08X:\tsll r%i,r%i,r%i,%i\tR%i:R%i=R%i:R%i<<%i=0X%016X, SR=0X%08X", *PC, Z, X, Y, offset, Z, X, Z, Y, offset, result, *SR);
+
+                break;
+            } 
+            
+            //If is MULS:
+            if (checkIsOp == 0X00000002) {
+                
+                uint32_t Z = 0;
+                //Z MASK:
+                Z = (*IR & 0x03E00000) >> 21;
+
+                uint32_t X = 0;
+                //X MASK:
+                X = (*IR & 0x001F0000) >> 16;
+
+                uint32_t Y = 0;
+                //Y MASK:
+                Y = (*IR & 0x0000F800) >> 11;
+
+                int64_t result = (int64_t)REGISTER[X] * (int64_t)REGISTER[Y];
+
+                uint32_t RI4 = ( *IR & 0X0000001F );
+
+                REGISTER[Z] = ( result & 0X00000000FFFFFFFF );
+
+                REGISTER[RI4] = result >> 32;
+
+                //ZN CASE:
+                if (result == 0) {
+                    *SR = 0x00000040;
+
+                    std::fprintf(output, "0X%08X:\tmuls r%i,r%i,r%i,r%i\tR%i:R%i=R%i*R%i=0X%016lX, SR=0X%08X", *PC, RI4, Z, X, Y, RI4, Z, X, Y, result, *SR);
+
+                    *PC = *PC + 4;
+                    *IR = MEM[*PC];
+
+                    break;
+                }
+
+                //OV CASE:
+                if (REGISTER[RI4] != 0) {
+                    *SR = 0X00000008;
+
+                    std::fprintf(output, "0X%08X:\tmuls r%i,r%i,r%i,r%i\tR%i:R%i=R%i*R%i=0X%016lX, SR=0X%08X", *PC, RI4, Z, X, Y, RI4, Z, X, Y, result, *SR);
+
+                    *PC = *PC + 4;
+                    *IR = MEM[*PC];
+
+                    break;
+                }
+
+                *SR = 0X00000000;
+                std::fprintf(output, "0X%08X:\tmuls r%i,r%i,r%i,r%i\tR%i:R%i=R%i*R%i=0X%016lX, SR=0X%08X", *PC, RI4, Z, X, Y, RI4, Z, X, Y, result, *SR);
 
                 break;
             }
 
-            //CY CASE:
-            if (REGISTER[RI4] != 0) {
-                *SR = 0X00000001;
-
-                std::fprintf(output, "0X%08X: mul r%i,r%i,r%i,r%i\t R%i:R%i=R%i*R%i=0X%016X, SR=0X%08X", *PC, RI4, Z, X, Y, RI4, Z, X, Y, result, *SR);
-
-                *PC = *PC + 4;
-                *IR = MEM[*PC];
-
-                break;
-            }
-
-            *SR = 0X00000000;
-            std::fprintf(output, "0X%08X: mul r%i,r%i,r%i,r%i\t R%i:R%i=R%i*R%i=0X%016X, SR=0X%08X", *PC, RI4, Z, X, Y, RI4, Z, X, Y, result, *SR);
-
-            break;
         
         default:
             break;
