@@ -446,7 +446,133 @@ int main(int argc, char const *argv[])
                 break;
             }
 
+            //If is SLA:
+            if (checkIsOp == 0X00000003) {
+                
+                uint32_t Z = 0;
+                //Z MASK:
+                Z = (*IR & 0x03E00000) >> 21;
+
+                uint32_t X = 0;
+                //X MASK:
+                X = (*IR & 0x001F0000) >> 16;
+
+                uint32_t Y = 0;
+                //Y MASK:
+                Y = (*IR & 0x0000F800) >> 11;
+
+                uint32_t RI4 = ( *IR & 0X0000001F );
+
+                //Adding RZ value first:
+                int64_t result = (int32_t)REGISTER[Z];
+                result = result << 32;
+
+                //Adding RY value:
+                result = (result | (int32_t)REGISTER[Y]);
+
+                //Applying offset:
+                uint32_t powV = RI4 + 1; 
+                uint32_t offset = pow(2, powV);
+                result = result << offset;
+
+                //Separating result: 
+                REGISTER[X] = (result & 0X00000000FFFFFFFF);
+                REGISTER[Z] = result >> 32;
+
+                //ZN CASE:
+                if (result == 0) {
+                    *SR = 0x00000040;
+
+                    std::fprintf(output, "0X%08X:\tsla r%i,r%i,r%i,%i\tR%i:R%i=R%i:R%i<<%i=0X%016X, SR=0X%08X", *PC, Z, X, Y, offset, Z, X, Z, Y, offset, result, *SR);
+
+                    *PC = *PC + 4;
+                    *IR = MEM[*PC];
+
+                    break;
+                }
+
+                //OV CASE:
+                if (REGISTER[Z] != 0) {
+                    *SR = 0X00000001;
+
+                    std::fprintf(output, "0X%08X:\tsla r%i,r%i,r%i,%i\tR%i:R%i=R%i:R%i<<%i=0X%016X, SR=0X%08X", *PC, Z, X, Y, offset, Z, X, Z, Y, offset, result, *SR);
+
+                    *PC = *PC + 4;
+                    *IR = MEM[*PC];
+
+                    break;
+                }
+
+                *SR = 0X00000000;
+                std::fprintf(output, "0X%08X:\tsla r%i,r%i,r%i,%i\tR%i:R%i=R%i:R%i<<%i=0X%016X, SR=0X%08X", *PC, Z, X, Y, offset, Z, X, Z, Y, offset, result, *SR);
+
+                break;
+            }
         
+            //If is DIV:
+            if (checkIsOp == 0x00000004) {
+                 
+                uint32_t Z = 0;
+                //Z MASK:
+                Z = (*IR & 0x03E00000) >> 21;
+
+                uint32_t X = 0;
+                //X MASK:
+                X = (*IR & 0x001F0000) >> 16;
+
+                uint32_t Y = 0;
+                //Y MASK:
+                Y = (*IR & 0x0000F800) >> 11;
+
+                //RI4
+                uint32_t RI4 = ( *IR & 0X0000001F );
+
+                REGISTER[RI4] = ( REGISTER[X] % REGISTER[Y] );
+
+                REGISTER[Z] = ( REGISTER[X] / REGISTER[Y] );
+
+                //ZN CASE:
+                if (REGISTER[Z] == 0) {
+                    *SR = 0x00000040;
+
+                    std::fprintf(output, "0X%08X:\tdiv r%i,r%i,r%i,r%i\tR%i=R%i%R%i=0X%08X,R%i=R%i/R%i=0X%08X, 0X%08X", RI4, Z, X, Y, RI4, X, Y, REGISTER[RI4], Z, X, Y, REGISTER[Z], *SR);
+
+                    *PC = *PC + 4;
+                    *IR = MEM[*PC];
+
+                    break;
+                }
+
+                //ZD CASE:
+                if (REGISTER[Y] == 0) {
+                    *SR = 0x00000020;
+
+                    std::fprintf(output, "0X%08X:\tdiv r%i,r%i,r%i,r%i\tR%i=R%i%R%i=0X%08X,R%i=R%i/R%i=0X%08X, 0X%08X", RI4, Z, X, Y, RI4, X, Y, REGISTER[RI4], Z, X, Y, REGISTER[Z], *SR);
+
+                    *PC = *PC + 4;
+                    *IR = MEM[*PC];
+
+                    break;
+                }
+
+                //CY CASE:
+                if (REGISTER[RI4] != 0) {
+                    *SR = 0X00000001;
+
+                    std::fprintf(output, "0X%08X:\tdiv r%i,r%i,r%i,r%i\tR%i=R%i%R%i=0X%08X,R%i=R%i/R%i=0X%08X, 0X%08X", RI4, Z, X, Y, RI4, X, Y, REGISTER[RI4], Z, X, Y, REGISTER[Z], *SR);
+
+                    *PC = *PC + 4;
+                    *IR = MEM[*PC];
+
+                    break;
+                }
+
+                *SR = 0X00000000;
+                std::fprintf(output, "0X%08X:\tdiv r%i,r%i,r%i,r%i\tR%i=R%i%R%i=0X%08X,R%i=R%i/R%i=0X%08X, 0X%08X", RI4, Z, X, Y, RI4, X, Y, REGISTER[RI4], Z, X, Y, REGISTER[Z], *SR);
+
+                break;
+            }
+
         default:
             break;
         }
