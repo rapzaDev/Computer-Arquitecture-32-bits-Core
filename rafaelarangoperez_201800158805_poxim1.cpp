@@ -883,6 +883,98 @@ int main(int argc, char const *argv[])
 
             break;
 
+        case 0X07:
+
+            uint32_t Z = 0;
+            //Z MASK:
+            Z = (*IR & 0x03E00000) >> 21;
+
+            uint32_t X = 0;
+            //X MASK:
+            X = (*IR & 0x001F0000) >> 16;
+
+            uint32_t Y = 0;
+            //Y MASK:
+            Y = (*IR & 0x0000F800) >> 11;
+
+            REGISTER[Z] = ( REGISTER[X] | REGISTER[Y] );
+
+            //ZN CASE:
+            if (REGISTER[Z] == 0){
+                *SR = 0X00000040;
+
+                std::fprintf(output, "0X%08X:\tor r%i,r%i,r%i\tR%i=R%i|R%i=0X%08X,SR=0X%08X", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
+
+                *PC = *PC + 4;
+                *IR = MEM[*PC];
+                break;
+            }
+
+            //SN CASE:
+            uint32_t RZ31 = (REGISTER[Z] >> 31);
+            if (RZ31 == 1) {
+                *SR = 0x00000010;
+
+                std::fprintf(output, "0X%08X:\tor r%i,r%i,r%i\tR%i=R%i|R%i=0X%08X,SR=0X%08X", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
+
+                *PC = *PC + 4;
+                *IR = MEM[*PC];
+                break;
+            }
+
+            *SR = 0x00000000;
+
+            std::fprintf(output, "0X%08X:\tor r%i,r%i,r%i\tR%i=R%i|R%i=0X%08X,SR=0X%08X", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
+
+            *PC = *PC + 4;
+            *IR = MEM[*PC];
+
+            break;
+
+        case 0X08:
+
+            uint32_t Z = 0;
+            //Z MASK:
+            Z = (*IR & 0x03E00000) >> 21;
+
+            uint32_t X = 0;
+            //X MASK:
+            X = (*IR & 0x001F0000) >> 16;
+
+            REGISTER[Z] = ( ~REGISTER[X] );
+
+            //ZN CASE:
+            if (REGISTER[Z] == 0){
+                *SR = 0X00000040;
+
+                std::fprintf(output, "0X%08X:\tnot r%i,r%i\tR%i=~R%i=0X%08X,SR=0X%08X", *PC, Z, X, Z, X, REGISTER[Z], *SR);
+
+                *PC = *PC + 4;
+                *IR = MEM[*PC];
+                break;
+            }
+
+            //SN CASE:
+            uint32_t RZ31 = (REGISTER[Z] >> 31);
+            if (RZ31 == 1) {
+                *SR = 0x00000010;
+
+                std::fprintf(output, "0X%08X:\tnot r%i,r%i\tR%i=~R%i=0X%08X,SR=0X%08X", *PC, Z, X, Z, X, REGISTER[Z], *SR);
+
+                *PC = *PC + 4;
+                *IR = MEM[*PC];
+                break;
+            }
+
+            *SR = 0x00000000;
+
+            std::fprintf(output, "0X%08X:\tnot r%i,r%i\tR%i=~R%i=0X%08X,SR=0X%08X", *PC, Z, X, Z, X, REGISTER[Z], *SR);
+
+            *PC = *PC + 4;
+            *IR = MEM[*PC];                        
+
+            break;
+
         default:
             break;
         }
