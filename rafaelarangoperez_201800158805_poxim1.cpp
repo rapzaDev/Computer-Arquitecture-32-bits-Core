@@ -1277,6 +1277,53 @@ int main(int argc, char const *argv[])
 
         case 0X16:
 
+            uint32_t Z = 0;
+            //Z MASK:
+            Z = (*IR & 0x03E00000) >> 21;
+
+            uint32_t X = 0;
+            //X MASK:
+            X = (*IR & 0x001F0000) >> 16;
+
+            uint32_t I15 = 0;
+            //I MASK:
+            I15 = (*IR & 0x0000FFFF);
+            uint32_t checkI15 = I15 >> 15;
+            if (checkI15 == 1) I15 = ( I15 | 0xFFFF0000);
+
+            REGISTER[Z] = (uint32_t)((int32_t)REGISTER[X] % (int32_t)I15);
+
+            //ZN CASE:
+            if (REGISTER[Z] == 0){
+                *SR = 0X00000040;
+
+                std::fprintf(output, "0X%08X:\tmodi r%i,r%i,%i\tR%i=R%i%%0X%08X=0X%08X,SR=0X%08X", *PC, Z, X, I15, Z, X, I15, REGISTER[Z], *SR);
+
+                *PC = *PC + 4;
+                *IR = MEM[*PC];
+                break;
+            }
+
+            //ZD CASE:
+            if (I15 == 0){
+                *SR = 0X00000020;
+
+                std::fprintf(output, "0X%08X:\tmodi r%i,r%i,%i\tR%i=R%i%%0X%08X=0X%08X,SR=0X%08X", *PC, Z, X, I15, Z, X, I15, REGISTER[Z], *SR);
+
+                *PC = *PC + 4;
+                *IR = MEM[*PC];
+                break;
+            }
+
+            std::fprintf(output, "0X%08X:\tmodi r%i,r%i,%i\tR%i=R%i%%0X%08X=0X%08X,SR=0X%08X", *PC, Z, X, I15, Z, X, I15, REGISTER[Z], *SR);
+
+            *PC = *PC + 4;
+            *IR = MEM[*PC];
+
+            break;
+
+        case 0X17:
+
 
 
             break;
