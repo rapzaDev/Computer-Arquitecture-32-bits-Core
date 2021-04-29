@@ -56,7 +56,7 @@ int main(int argc, char const *argv[])
         switch (opcode)
         {
         
-        // TYPE U - NOP/MOV
+        // ----------- TYPE U OPERATIONS -----------
         case 0X00:
             
             if (*IR == 0){
@@ -1020,6 +1020,166 @@ int main(int argc, char const *argv[])
 
             *PC = *PC + 4;
             *IR = MEM[*PC];
+
+            break;
+
+
+        // ----------- TYPE F OPERATIONS -----------
+        case 0X12:
+
+            uint32_t Z = 0;
+            //Z MASK:
+            Z = (*IR & 0x03E00000) >> 21;
+
+            uint32_t X = 0;
+            //X MASK:
+            X = (*IR & 0x001F0000) >> 16;
+
+            uint32_t I15 = 0;
+            //I MASK:
+            I15 = (*IR & 0x0000FFFF);
+            uint32_t checkI15 = I15 >> 15;
+            if (checkI15 == 1) I15 = ( I15 | 0xFFFF0000);
+
+            REGISTER[Z] = REGISTER[X] + I15;
+
+            //ZN CASE:
+            if (REGISTER[Z] == 0){
+                *SR = 0X00000040;
+
+                std::fprintf(output, "0X%08X:\taddi r%i,r%i,%i\tR%i=R%i+0X%08X=0X%08X,SR=0X%08X", *PC, Z, X, I15, Z, X, I15, REGISTER[Z], *SR);
+
+                *PC = *PC + 4;
+                *IR = MEM[*PC];
+                break;
+            }
+
+            //SN CASE:
+            uint32_t RZ31 = (REGISTER[Z] >> 31);
+            if (RZ31 == 1) {
+                *SR = 0x00000010;
+
+                std::fprintf(output, "0X%08X:\taddi r%i,r%i,%i\tR%i=R%i+0X%08X=0X%08X,SR=0X%08X", *PC, Z, X, I15, Z, X, I15, REGISTER[Z], *SR);
+
+                *PC = *PC + 4;
+                *IR = MEM[*PC];
+                break;
+            }
+
+            //OV CASE:
+            uint32_t RX31 = (REGISTER[X] >> 31);
+            
+            if ( (RX31 != checkI15) && (RZ31 != RX31) ){
+                *SR = 0x00000008;
+
+                std::fprintf(output, "0X%08X:\taddi r%i,r%i,%i\tR%i=R%i+0X%08X=0X%08X,SR=0X%08X", *PC, Z, X, I15, Z, X, I15, REGISTER[Z], *SR);
+
+                *PC = *PC + 4;
+                *IR = MEM[*PC];
+                break;
+            }
+
+            //CY CASE:
+            uint64_t result = (uint64_t)(REGISTER[X] + I15);
+            result = ( result & 0X0000000100000000 );
+            result = result >> 32;
+
+            if (result == 1) {
+                *SR = 0x00000001;
+
+                std::fprintf(output, "0X%08X:\taddi r%i,r%i,%i\tR%i=R%i+0X%08X=0X%08X,SR=0X%08X", *PC, Z, X, I15, Z, X, I15, REGISTER[Z], *SR);
+
+                *PC = *PC + 4;
+                *IR = MEM[*PC];
+                break;
+            }
+
+            std::fprintf(output, "0X%08X:\taddi r%i,r%i,%i\tR%i=R%i+0X%08X=0X%08X,SR=0X%08X", *PC, Z, X, I15, Z, X, I15, REGISTER[Z], *SR);
+
+            *PC = *PC + 4;
+            *IR = MEM[*PC];
+
+            break;
+
+        case 0X13:
+
+            uint32_t Z = 0;
+            //Z MASK:
+            Z = (*IR & 0x03E00000) >> 21;
+
+            uint32_t X = 0;
+            //X MASK:
+            X = (*IR & 0x001F0000) >> 16;
+
+            uint32_t I15 = 0;
+            //I MASK:
+            I15 = (*IR & 0x0000FFFF);
+            uint32_t checkI15 = I15 >> 15;
+            if (checkI15 == 1) I15 = ( I15 | 0xFFFF0000);
+
+            REGISTER[Z] = REGISTER[X] - I15;
+
+            //ZN CASE:
+            if (REGISTER[Z] == 0){
+                *SR = 0X00000040;
+
+                std::fprintf(output, "0X%08X:\tsubi r%i,r%i,%i\tR%i=R%i-0X%08X=0X%08X,SR=0X%08X", *PC, Z, X, I15, Z, X, I15, REGISTER[Z], *SR);
+
+                *PC = *PC + 4;
+                *IR = MEM[*PC];
+                break;
+            }
+
+            //SN CASE:
+            uint32_t RZ31 = (REGISTER[Z] >> 31);
+            if (RZ31 == 1) {
+                *SR = 0x00000010;
+
+                std::fprintf(output, "0X%08X:\tsubi r%i,r%i,%i\tR%i=R%i-0X%08X=0X%08X,SR=0X%08X", *PC, Z, X, I15, Z, X, I15, REGISTER[Z], *SR);
+
+                *PC = *PC + 4;
+                *IR = MEM[*PC];
+                break;
+            }
+
+            //OV CASE:
+            uint32_t RX31 = (REGISTER[X] >> 31);
+            
+            if ( (RX31 != checkI15) && (RZ31 != RX31) ){
+                *SR = 0x00000008;
+
+                std::fprintf(output, "0X%08X:\tsubi r%i,r%i,%i\tR%i=R%i-0X%08X=0X%08X,SR=0X%08X", *PC, Z, X, I15, Z, X, I15, REGISTER[Z], *SR);
+
+                *PC = *PC + 4;
+                *IR = MEM[*PC];
+                break;
+            }
+
+            //CY CASE:
+            uint64_t result = (uint64_t)(REGISTER[X] + I15);
+            result = ( result & 0X0000000100000000 );
+            result = result >> 32;
+
+            if (result == 1) {
+                *SR = 0x00000001;
+
+                std::fprintf(output, "0X%08X:\tsubi r%i,r%i,%i\tR%i=R%i-0X%08X=0X%08X,SR=0X%08X", *PC, Z, X, I15, Z, X, I15, REGISTER[Z], *SR);
+
+                *PC = *PC + 4;
+                *IR = MEM[*PC];
+                break;
+            }
+
+            std::fprintf(output, "0X%08X:\tsubi r%i,r%i,%i\tR%i=R%i-0X%08X=0X%08X,SR=0X%08X", *PC, Z, X, I15, Z, X, I15, REGISTER[Z], *SR);
+
+            *PC = *PC + 4;
+            *IR = MEM[*PC];
+
+            break;
+
+        case 0X14:
+
+            
 
             break;
 
