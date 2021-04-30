@@ -48,8 +48,9 @@ int main(int argc, char const *argv[])
     std::fprintf(output, "[START OF SIMULATION]\n");
 
     uint32_t opcode = 0;
+    uint32_t loopControl = 1;
 
-    while(*IR == 0xFC000000)
+    while(loopControl)
     {
         opcode = (*IR & 0xFC000000) >> 26;
 
@@ -1414,6 +1415,9 @@ int main(int argc, char const *argv[])
 
             std::fprintf(output, "0X%08X:\tl8 r%i,[r%i+-%i]\tR%i=MEM[0X%08X]=0X%02X", *PC, Z, X, I15, Z, L8, REGISTER[Z]);
 
+            *PC = *PC + 4;
+            *IR = MEM[*PC];
+
             break;
 
         case 0X19:
@@ -1438,6 +1442,9 @@ int main(int argc, char const *argv[])
             REGISTER[Z] = MEM[L16];
 
             std::fprintf(output, "0X%08X:\tl16 r%i,[r%i+-%i]\tR%i=MEM[0X%08X]=0X%04X", *PC, Z, X, I15, Z, L16, REGISTER[Z]);
+
+            *PC = *PC + 4;
+            *IR = MEM[*PC];
 
             break;
 
@@ -1464,6 +1471,9 @@ int main(int argc, char const *argv[])
 
             std::fprintf(output, "0X%08X:\tl32 r%i,[r%i+-%i]\tR%i=MEM[0X%08X]=0X%08X", *PC, Z, X, I15, Z, L32, REGISTER[Z]);
 
+            *PC = *PC + 4;
+            *IR = MEM[*PC];
+
             break;
 
         case 0X1B:
@@ -1487,6 +1497,9 @@ int main(int argc, char const *argv[])
             MEM[S8] = REGISTER[Z];
 
             std::fprintf(output, "0X%08X:\ts8 [r%i+-%i],r%i\tMEM[0X%08X]=R%i=0X%02X", *PC, X, I15, Z, S8, Z, REGISTER[Z]);
+
+            *PC = *PC + 4;
+            *IR = MEM[*PC];
 
             break;
 
@@ -1513,6 +1526,9 @@ int main(int argc, char const *argv[])
 
             std::fprintf(output, "0X%08X:\ts16 [r%i+-%i],r%i\tMEM[0X%08X]=R%i=0X%04X", *PC, X, I15, Z, S16, Z, REGISTER[Z]);
 
+            *PC = *PC + 4;
+            *IR = MEM[*PC];
+
             break;
 
         case 0X1D:
@@ -1538,15 +1554,334 @@ int main(int argc, char const *argv[])
 
             std::fprintf(output, "0X%08X:\ts32 [r%i+-%i],r%i\tMEM[0X%08X]=R%i=0X%08X", *PC, X, I15, Z, S32, Z, REGISTER[Z]);
 
+            *PC = *PC + 4;
+            *IR = MEM[*PC];
+
+            break;
+
+        case 0X2A:
+
+            uint32_t I25 = 0;
+            //I MASK:
+            I25 = (*IR & 0x03FFFFFF);
+            uint32_t checkI25 = I25 >> 25;
+            if (checkI25 == 1) I25 = ( I25 | 0xFC000000);
+
+            uint32_t BAE = I25;
+            BAE = BAE << 2;
+
+            uint32_t initialPC = *PC;
+            *PC = *PC + 4 + BAE; 
+
+            std::fprintf(output, "0X%08X:\tbae %i\tPC=0X%08X", initialPC, I25, *PC);
+
+            *IR = MEM[*PC];
+
+            break;
+
+        case 0X2B:
+
+            uint32_t I25 = 0;
+            //I MASK:
+            I25 = (*IR & 0x03FFFFFF);
+            uint32_t checkI25 = I25 >> 25;
+            if (checkI25 == 1) I25 = ( I25 | 0xFC000000);
+
+            uint32_t BAT = I25;
+            BAT = BAT << 2;
+
+            uint32_t initialPC = *PC;
+            *PC = *PC + 4 + BAT; 
+
+            std::fprintf(output, "0X%08X:\tbat %i\tPC=0X%08X", initialPC, I25, *PC);
+
+            *IR = MEM[*PC];
+
+            break;
+
+        case 0X2C:
+
+            uint32_t I25 = 0;
+            //I MASK:
+            I25 = (*IR & 0x03FFFFFF);
+            uint32_t checkI25 = I25 >> 25;
+            if (checkI25 == 1) I25 = ( I25 | 0xFC000000);
+
+            uint32_t BBE = I25;
+            BBE = BBE << 2;
+
+            uint32_t initialPC = *PC;
+            *PC = *PC + 4 + BBE; 
+
+            std::fprintf(output, "0X%08X:\tbbe %i\tPC=0X%08X", initialPC, I25, *PC);
+
+            *IR = MEM[*PC];
+
+            break;
+        
+        case 0X2D:
+
+            uint32_t I25 = 0;
+            //I MASK:
+            I25 = (*IR & 0x03FFFFFF);
+            uint32_t checkI25 = I25 >> 25;
+            if (checkI25 == 1) I25 = ( I25 | 0xFC000000);
+
+            uint32_t BBT = I25;
+            BBT = BBT << 2;
+
+            uint32_t initialPC = *PC;
+            *PC = *PC + 4 + BBT; 
+
+            std::fprintf(output, "0X%08X:\tbbt %i\tPC=0X%08X", initialPC, I25, *PC);
+
+            *IR = MEM[*PC];
+
+            break;
+
+        case 0X2E:
+
+            uint32_t I25 = 0;
+            //I MASK:
+            I25 = (*IR & 0x03FFFFFF);
+            uint32_t checkI25 = I25 >> 25;
+            if (checkI25 == 1) I25 = ( I25 | 0xFC000000);
+
+            uint32_t BEQ = I25;
+            BEQ = BEQ << 2;
+
+            uint32_t initialPC = *PC;
+            *PC = *PC + 4 + BEQ; 
+
+            std::fprintf(output, "0X%08X:\tbeq %i\tPC=0X%08X", initialPC, I25, *PC);
+
+            *IR = MEM[*PC];
+
+            break;
+        
+        case 0X2F:
+
+            uint32_t I25 = 0;
+            //I MASK:
+            I25 = (*IR & 0x03FFFFFF);
+            uint32_t checkI25 = I25 >> 25;
+            if (checkI25 == 1) I25 = ( I25 | 0xFC000000);
+
+            uint32_t BGE = (int32_t)I25;
+            BGE = BGE << 2;
+
+            uint32_t initialPC = *PC;
+            *PC = *PC + 4 + BGE; 
+
+            std::fprintf(output, "0X%08X:\tbge %i\tPC=0X%08X", initialPC, I25, *PC);
+
+            *IR = MEM[*PC];
+
+            break;
+
+        case 0X30:
+
+            uint32_t I25 = 0;
+            //I MASK:
+            I25 = (*IR & 0x03FFFFFF);
+            uint32_t checkI25 = I25 >> 25;
+            if (checkI25 == 1) I25 = ( I25 | 0xFC000000);
+
+            uint32_t BGT = (int32_t)I25;
+            BGT = BGT << 2;
+
+            uint32_t initialPC = *PC;
+            *PC = *PC + 4 + BGT; 
+
+            std::fprintf(output, "0X%08X:\tbgt %i\tPC=0X%08X", initialPC, I25, *PC);
+
+            *IR = MEM[*PC];
+
+            break;
+
+        case 0X31:
+
+            uint32_t I25 = 0;
+            //I MASK:
+            I25 = (*IR & 0x03FFFFFF);
+            uint32_t checkI25 = I25 >> 25;
+            if (checkI25 == 1) I25 = ( I25 | 0xFC000000);
+
+            uint32_t BIV = I25;
+            BIV = BIV << 2;
+
+            uint32_t initialPC = *PC;
+            *PC = *PC + 4 + BIV; 
+
+            std::fprintf(output, "0X%08X:\tbiv %i\tPC=0X%08X", initialPC, I25, *PC);
+
+            *IR = MEM[*PC];
+
+            break;
+
+        case 0X32:
+
+            uint32_t I25 = 0;
+            //I MASK:
+            I25 = (*IR & 0x03FFFFFF);
+            uint32_t checkI25 = I25 >> 25;
+            if (checkI25 == 1) I25 = ( I25 | 0xFC000000);
+
+            uint32_t BLE = (int32_t)I25;
+            BLE = BLE << 2;
+
+            uint32_t initialPC = *PC;
+            *PC = *PC + 4 + BLE; 
+
+            std::fprintf(output, "0X%08X:\tble %i\tPC=0X%08X", initialPC, I25, *PC);
+
+            *IR = MEM[*PC];
+
+            break;
+
+        case 0X33:
+
+            uint32_t I25 = 0;
+            //I MASK:
+            I25 = (*IR & 0x03FFFFFF);
+            uint32_t checkI25 = I25 >> 25;
+            if (checkI25 == 1) I25 = ( I25 | 0xFC000000);
+
+            uint32_t BLT = (int32_t)I25;
+            BLT = BLT << 2;
+
+            uint32_t initialPC = *PC;
+            *PC = *PC + 4 + BLT; 
+
+            std::fprintf(output, "0X%08X:\tblt %i\tPC=0X%08X", initialPC, I25, *PC);
+
+            *IR = MEM[*PC];
+
+            break;
+
+        case 0X34:
+
+            uint32_t I25 = 0;
+            //I MASK:
+            I25 = (*IR & 0x03FFFFFF);
+            uint32_t checkI25 = I25 >> 25;
+            if (checkI25 == 1) I25 = ( I25 | 0xFC000000);
+
+            uint32_t BNE = I25;
+            BNE = BNE << 2;
+
+            uint32_t initialPC = *PC;
+            *PC = *PC + 4 + BNE; 
+
+            std::fprintf(output, "0X%08X:\tbne %i\tPC=0X%08X", initialPC, I25, *PC);
+
+            *IR = MEM[*PC];
+
+            break;
+
+        case 0X35:
+
+            uint32_t I25 = 0;
+            //I MASK:
+            I25 = (*IR & 0x03FFFFFF);
+            uint32_t checkI25 = I25 >> 25;
+            if (checkI25 == 1) I25 = ( I25 | 0xFC000000);
+
+            uint32_t BNI = I25;
+            BNI = BNI << 2;
+
+            uint32_t initialPC = *PC;
+            *PC = *PC + 4 + BNI; 
+
+            std::fprintf(output, "0X%08X:\tbni %i\tPC=0X%08X", initialPC, I25, *PC);
+
+            *IR = MEM[*PC];
+
+            break;
+
+        case 0X36:
+
+            uint32_t I25 = 0;
+            //I MASK:
+            I25 = (*IR & 0x03FFFFFF);
+            uint32_t checkI25 = I25 >> 25;
+            if (checkI25 == 1) I25 = ( I25 | 0xFC000000);
+
+            uint32_t BNZ = I25;
+            BNZ = BNZ << 2;
+
+            uint32_t initialPC = *PC;
+            *PC = *PC + 4 + BNZ; 
+
+            std::fprintf(output, "0X%08X:\tbnz %i\tPC=0X%08X", initialPC, I25, *PC);
+
+            *IR = MEM[*PC];
+
+            break;
+
+        case 0X37:
+
+            uint32_t I25 = 0;
+            //I MASK:
+            I25 = (*IR & 0x03FFFFFF);
+            uint32_t checkI25 = I25 >> 25;
+            if (checkI25 == 1) I25 = ( I25 | 0xFC000000);
+
+            uint32_t BUN = I25;
+            BUN = BUN << 2;
+
+            uint32_t initialPC = *PC;
+            *PC = *PC + 4 + BUN; 
+
+            std::fprintf(output, "0X%08X:\tbun %i\tPC=0X%08X", initialPC, I25, *PC);
+
+            *IR = MEM[*PC];
+
+            break;
+
+        case 0X38:
+
+            uint32_t I25 = 0;
+            //I MASK:
+            I25 = (*IR & 0x03FFFFFF);
+            uint32_t checkI25 = I25 >> 25;
+            if (checkI25 == 1) I25 = ( I25 | 0xFC000000);
+
+            uint32_t BZD = I25;
+            BZD = BZD << 2;
+
+            uint32_t initialPC = *PC;
+            *PC = *PC + 4 + BZD; 
+
+            std::fprintf(output, "0X%08X:\tbzd %i\tPC=0X%08X", initialPC, I25, *PC);
+
+            *IR = MEM[*PC];
+
+            break;
+
+        case 0X3F:
+
+            uint32_t I25 = 0;
+            //I MASK:
+            I25 = (*IR & 0x03FFFFFF);
+
+            if (I25 == 0) std::fprintf(output, "0X%08X:\tint %i\tCR=0X%08X,PC=0X%08X", *PC, I25, 0, *PC);
+
+            loopControl = 0;            
+
             break;
 
         default:
+
+            std::fprintf(output, "[INVALID INSTRUCTION @ 0X%08X\n", *IR);                    
+
             break;
         }
 
 
     }
-        
+
+    std::fprintf(output, "[END OF SIMULATION]\n");        
 
     std::free(MEM);
     std::free(REGISTER);
