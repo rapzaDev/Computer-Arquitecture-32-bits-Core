@@ -1462,7 +1462,81 @@ int main(int argc, char const *argv[])
             
             REGISTER[Z] = MEM[L32];
 
-            std::fprintf(output, "0X%08X:\tl16 r%i,[r%i+-%i]\tR%i=MEM[0X%08X]=0X%08X", *PC, Z, X, I15, Z, L32, REGISTER[Z]);
+            std::fprintf(output, "0X%08X:\tl32 r%i,[r%i+-%i]\tR%i=MEM[0X%08X]=0X%08X", *PC, Z, X, I15, Z, L32, REGISTER[Z]);
+
+            break;
+
+        case 0X1B:
+
+            uint32_t Z = 0;
+            //Z MASK:
+            Z = (*IR & 0x03E00000) >> 21;
+
+            uint32_t X = 0;
+            //X MASK:
+            X = (*IR & 0x001F0000) >> 16;
+
+            uint32_t I15 = 0;
+            //I MASK:
+            I15 = (*IR & 0x0000FFFF);
+            uint32_t checkI15 = I15 >> 15;
+            if (checkI15 == 1) I15 = ( I15 | 0xFFFF0000);
+
+            uint32_t S8 = REGISTER[X] + I15;
+            
+            MEM[S8] = REGISTER[Z];
+
+            std::fprintf(output, "0X%08X:\ts8 [r%i+-%i],r%i\tMEM[0X%08X]=R%i=0X%02X", *PC, X, I15, Z, S8, Z, REGISTER[Z]);
+
+            break;
+
+        case 0X1C:
+
+            uint32_t Z = 0;
+            //Z MASK:
+            Z = (*IR & 0x03E00000) >> 21;
+
+            uint32_t X = 0;
+            //X MASK:
+            X = (*IR & 0x001F0000) >> 16;
+
+            uint32_t I15 = 0;
+            //I MASK:
+            I15 = (*IR & 0x0000FFFF);
+            uint32_t checkI15 = I15 >> 15;
+            if (checkI15 == 1) I15 = ( I15 | 0xFFFF0000);
+
+            uint32_t S16 = REGISTER[X] + I15;
+            S16 = S16 << 1;
+            
+            MEM[S16] = REGISTER[Z];
+
+            std::fprintf(output, "0X%08X:\ts16 [r%i+-%i],r%i\tMEM[0X%08X]=R%i=0X%04X", *PC, X, I15, Z, S16, Z, REGISTER[Z]);
+
+            break;
+
+        case 0X1D:
+
+            uint32_t Z = 0;
+            //Z MASK:
+            Z = (*IR & 0x03E00000) >> 21;
+
+            uint32_t X = 0;
+            //X MASK:
+            X = (*IR & 0x001F0000) >> 16;
+
+            uint32_t I15 = 0;
+            //I MASK:
+            I15 = (*IR & 0x0000FFFF);
+            uint32_t checkI15 = I15 >> 15;
+            if (checkI15 == 1) I15 = ( I15 | 0xFFFF0000);
+
+            uint32_t S32 = REGISTER[X] + I15;
+            S32 = S32 << 2;
+            
+            MEM[S32] = REGISTER[Z];
+
+            std::fprintf(output, "0X%08X:\ts32 [r%i+-%i],r%i\tMEM[0X%08X]=R%i=0X%08X", *PC, X, I15, Z, S32, Z, REGISTER[Z]);
 
             break;
 
