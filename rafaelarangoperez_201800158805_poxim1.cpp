@@ -9,7 +9,7 @@ void NOP (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
     std::fprintf(output, "0X%08X:\tmov r0,0\tR0=0X%08X\n", *PC, 0);
                 
     //UPDATING PC & IR VALUES
-    *PC = *PC + 4;
+    *PC = *PC + 1;
     *IR = MEM[*PC];
 }
 
@@ -20,11 +20,15 @@ void MOV (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *REG
 
     uint32_t attributionValue = (*IR & 0x001FFFFF);
     REGISTER[Z] = attributionValue;
-
-    std::fprintf(output, "0X%08X:\tmov r%i,%i\tR%i=0X%08X\n", *PC, Z, attributionValue, Z, attributionValue);
+    
+    if (Z == 30) {
+        std::fprintf(output, "0X%08X:\tmov sp,%i\tR%i=0X%08X\n", *PC, Z, attributionValue, Z, attributionValue);    
+    } else {
+        std::fprintf(output, "0X%08X:\tmov r%i,%i\tR%i=0X%08X\n", *PC, Z, attributionValue, Z, attributionValue);
+    }
 
     //UPDATING PC & IR VALUES
-    *PC = *PC + 4;
+    *PC = *PC + 1;
     *IR = MEM[*PC];
 }
 
@@ -45,7 +49,7 @@ void MOVS (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *RE
     std::fprintf(output, "0X%08X:\tmovs r%i,%i\tR%i=0X%08X\n", *PC, Z, attributionValue, Z, attributionValue);
 
     //UPDATING PC & IR VALUES
-    *PC = *PC + 4;
+    *PC = *PC + 1;
     *IR = MEM[*PC];
 }
 
@@ -83,34 +87,34 @@ void ADD (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
 
         std::fprintf(output, "0X%08X:\tadd r%i,r%i,r%i\tR%i=R%i+R%i=0X%08X\n, SR=0X%08X", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
     } else if (checkSN == 1){
         *SR = 0x00000010;
 
         std::fprintf(output, "0X%08X:\tadd r%i,r%i,r%i\tR%i=R%i+R%i=0X%08X\n, SR=0X%08X", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
     } else if (result == 1) {
         *SR = 0X00000001;
 
         std::fprintf(output, "0X%08X:\tadd r%i,r%i,r%i\tR%i=R%i+R%i=0X%08X\n, SR=0X%08X", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
     } else if ( (RX31 == RY31) && (RZ31 != RX31) ) {
         *SR = 0X00000008;
 
         std::fprintf(output, "0X%08X:\tadd r%i,r%i,r%i\tR%i=R%i+R%i=0X%08X\n, SR=0X%08X", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];        
     } else {
         *SR = 0X00000000;
         std::fprintf(output, "0X%08X:\tadd r%i,r%i,r%i\tR%i=R%i+R%i=0X%08X\n, SR=0X%08X", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
     }
 
@@ -149,7 +153,7 @@ void SUB (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
 
         std::fprintf(output, "0X%08X:\tsub r%i,r%i,r%i\tR%i=R%i-R%i=0X%08X,SR=0X%08X\n", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else if (checkSN == 1) {
@@ -157,27 +161,27 @@ void SUB (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
 
         std::fprintf(output, "0X%08X:\tsub r%i,r%i,r%i\tR%i=R%i-R%i=0X%08X,SR=0X%08X\n", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
     } else if (result == 1) {
         *SR = 0X00000001;
 
         std::fprintf(output, "0X%08X:\tsub r%i,r%i,r%i\tR%i=R%i-R%i=0X%08X,SR=0X%08X\n", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
     } else if ( (RX31 != RY31) && (RZ31 != RX31) ) {
         *SR = 0X00000008;
 
         std::fprintf(output, "0X%08X:\tsub r%i,r%i,r%i\tR%i=R%i-R%i=0X%08X,SR=0X%08X\n", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
     } else {
         *SR = 0X00000000;
         std::fprintf(output, "0X%08X:\tsub r%i,r%i,r%i\tR%i=R%i-R%i=0X%08X,SR=0X%08X\n", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
     }
 
@@ -210,7 +214,7 @@ void MUL (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
 
         std::fprintf(output, "0X%08X:\tmul r%i,r%i,r%i,r%i\tR%i:R%i=R%i*R%i=0X%016lX,SR=0X%08X\n", *PC, RI4, Z, X, Y, RI4, Z, X, Y, result, *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else if (REGISTER[RI4] != 0) {
@@ -218,13 +222,13 @@ void MUL (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
 
         std::fprintf(output, "0X%08X:\tmul r%i,r%i,r%i,r%i\tR%i:R%i=R%i*R%i=0X%016lX,SR=0X%08X\n", *PC, RI4, Z, X, Y, RI4, Z, X, Y, result, *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
     } else {
         *SR = 0X00000000;
         std::fprintf(output, "0X%08X:\tmul r%i,r%i,r%i,r%i\tR%i:R%i=R%i*R%i=0X%016lX,SR=0X%08X\n", *PC, RI4, Z, X, Y, RI4, Z, X, Y, result, *SR);   
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
     }
 
@@ -265,23 +269,23 @@ void SLL (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
     if (result == 0) {
         *SR = 0x00000040;
 
-        std::fprintf(output, "0X%08X:\tsll r%i,r%i,r%i,%i\tR%i:R%i=R%i:R%i<<%i=0X%016llX,SR=0X%08X\n", *PC, Z, X, Y, offset, Z, X, Z, Y, offset, result, *SR);
+        std::fprintf(output, "0X%08X:\tsll r%i,r%i,r%i,%i\tR%i:R%i=R%i:R%i<<%i=0X%016lX,SR=0X%08X\n", *PC, Z, X, Y, offset, Z, X, Z, Y, offset, result, *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else if (REGISTER[Z] != 0) {
         *SR = 0X00000001;
 
-        std::fprintf(output, "0X%08X:\tsll r%i,r%i,r%i,%i\tR%i:R%i=R%i:R%i<<%i=0X%016llX,SR=0X%08X\n", *PC, Z, X, Y, offset, Z, X, Z, Y, offset, result, *SR);
+        std::fprintf(output, "0X%08X:\tsll r%i,r%i,r%i,%i\tR%i:R%i=R%i:R%i<<%i=0X%016lX,SR=0X%08X\n", *PC, Z, X, Y, offset, Z, X, Z, Y, offset, result, *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
     } else {
         *SR = 0X00000000;
-        std::fprintf(output, "0X%08X:\tsll r%i,r%i,r%i,%i\tR%i:R%i=R%i:R%i<<%i=0X%016llX,SR=0X%08X\n", *PC, Z, X, Y, offset, Z, X, Z, Y, offset, result, *SR);
+        std::fprintf(output, "0X%08X:\tsll r%i,r%i,r%i,%i\tR%i:R%i=R%i:R%i<<%i=0X%016lX,SR=0X%08X\n", *PC, Z, X, Y, offset, Z, X, Z, Y, offset, result, *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
     }
 
@@ -314,7 +318,7 @@ void MULS (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR
 
         std::fprintf(output, "0X%08X:\tmuls r%i,r%i,r%i,r%i\tR%i:R%i=R%i*R%i=0X%016lX,SR=0X%08X\n", *PC, RI4, Z, X, Y, RI4, Z, X, Y, result, *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else if (REGISTER[RI4] != 0) {
@@ -322,13 +326,13 @@ void MULS (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR
 
         std::fprintf(output, "0X%08X:\tmuls r%i,r%i,r%i,r%i\tR%i:R%i=R%i*R%i=0X%016lX,SR=0X%08X\n", *PC, RI4, Z, X, Y, RI4, Z, X, Y, result, *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
     } else {
         *SR = 0X00000000;
         std::fprintf(output, "0X%08X:\tmuls r%i,r%i,r%i,r%i\tR%i:R%i=R%i*R%i=0X%016lX,SR=0X%08X\n", *PC, RI4, Z, X, Y, RI4, Z, X, Y, result, *SR);   
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
     }
 
@@ -369,23 +373,23 @@ void SLA (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
     if (result == 0) {
         *SR = 0x00000040;
 
-        std::fprintf(output, "0X%08X:\tsla r%i,r%i,r%i,%i\tR%i:R%i=R%i:R%i<<%i=0X%016llX,SR=0X%08X\n", *PC, Z, X, Y, offset, Z, X, Z, Y, offset, result, *SR);
+        std::fprintf(output, "0X%08X:\tsla r%i,r%i,r%i,%i\tR%i:R%i=R%i:R%i<<%i=0X%016lX,SR=0X%08X\n", *PC, Z, X, Y, offset, Z, X, Z, Y, offset, result, *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else if (REGISTER[Z] != 0) {
         *SR = 0X00000008;
 
-        std::fprintf(output, "0X%08X:\tsla r%i,r%i,r%i,%i\tR%i:R%i=R%i:R%i<<%i=0X%016llX,SR=0X%08X\n", *PC, Z, X, Y, offset, Z, X, Z, Y, offset, result, *SR);
+        std::fprintf(output, "0X%08X:\tsla r%i,r%i,r%i,%i\tR%i:R%i=R%i:R%i<<%i=0X%016lX,SR=0X%08X\n", *PC, Z, X, Y, offset, Z, X, Z, Y, offset, result, *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
     } else {
         *SR = 0X00000000;
-        std::fprintf(output, "0X%08X:\tsla r%i,r%i,r%i,%i\tR%i:R%i=R%i:R%i<<%i=0X%016llX,SR=0X%08X\n", *PC, Z, X, Y, offset, Z, X, Z, Y, offset, result, *SR);  
+        std::fprintf(output, "0X%08X:\tsla r%i,r%i,r%i,%i\tR%i:R%i=R%i:R%i<<%i=0X%016lX,SR=0X%08X\n", *PC, Z, X, Y, offset, Z, X, Z, Y, offset, result, *SR);  
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
     }
 
@@ -417,7 +421,7 @@ void DIV (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
 
         std::fprintf(output, "0X%08X:\tdiv r%i,r%i,r%i,r%i\tR%i=R%i%%R%i=0X%08X,R%i=R%i/R%i=0X%08X,SR=0X%08X\n", *PC, RI4, Z, X, Y, RI4, X, Y, REGISTER[RI4], Z, X, Y, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else if (REGISTER[Y] == 0) {
@@ -425,7 +429,7 @@ void DIV (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
 
         std::fprintf(output, "0X%08X:\tdiv r%i,r%i,r%i,r%i\tR%i=R%i%%R%i=0X%08X,R%i=R%i/R%i=0X%08X,SR=0X%08X\n", *PC, RI4, Z, X, Y, RI4, X, Y, REGISTER[RI4], Z, X, Y, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else if (REGISTER[RI4] != 0) {
@@ -433,14 +437,14 @@ void DIV (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
 
         std::fprintf(output, "0X%08X:\tdiv r%i,r%i,r%i,r%i\tR%i=R%i%%R%i=0X%08X,R%i=R%i/R%i=0X%08X,SR=0X%08X\n", *PC, RI4, Z, X, Y, RI4, X, Y, REGISTER[RI4], Z, X, Y, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else {
         *SR = 0X00000000;
         std::fprintf(output, "0X%08X:\tdiv r%i,r%i,r%i,r%i\tR%i=R%i%%R%i=0X%08X,R%i=R%i/R%i=0X%08X,SR=0X%08X\n", *PC, RI4, Z, X, Y, RI4, X, Y, REGISTER[RI4], Z, X, Y, REGISTER[Z], *SR);  
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
     }
 
@@ -481,24 +485,24 @@ void SRL (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
     if (result == 0) {
         *SR = 0x00000040;
 
-        std::fprintf(output, "0X%08X:\tsrl r%i,r%i,r%i,%i\tR%i:R%i=R%i:R%i>>%i=0X%016llX,SR=0X%08X\n", *PC, Z, X, Y, offset, Z, X, Z, Y, offset, result, *SR);
+        std::fprintf(output, "0X%08X:\tsrl r%i,r%i,r%i,%i\tR%i:R%i=R%i:R%i>>%i=0X%016lX,SR=0X%08X\n", *PC, Z, X, Y, offset, Z, X, Z, Y, offset, result, *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else if (REGISTER[Z] != 0) {
         *SR = 0X00000001;
 
-        std::fprintf(output, "0X%08X:\tsrl r%i,r%i,r%i,%i\tR%i:R%i=R%i:R%i>>%i=0X%016llX,SR=0X%08X\n", *PC, Z, X, Y, offset, Z, X, Z, Y, offset, result, *SR);
+        std::fprintf(output, "0X%08X:\tsrl r%i,r%i,r%i,%i\tR%i:R%i=R%i:R%i>>%i=0X%016lX,SR=0X%08X\n", *PC, Z, X, Y, offset, Z, X, Z, Y, offset, result, *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else {
         *SR = 0X00000000;
-        std::fprintf(output, "0X%08X:\tsrl r%i,r%i,r%i,%i\tR%i:R%i=R%i:R%i>>%i=0X%016llX,SR=0X%08X\n", *PC, Z, X, Y, offset, Z, X, Z, Y, offset, result, *SR);   
+        std::fprintf(output, "0X%08X:\tsrl r%i,r%i,r%i,%i\tR%i:R%i=R%i:R%i>>%i=0X%016lX,SR=0X%08X\n", *PC, Z, X, Y, offset, Z, X, Z, Y, offset, result, *SR);   
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
     }
 
@@ -530,7 +534,7 @@ void DIVS (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR
 
         std::fprintf(output, "0X%08X:\tdivs r%i,r%i,r%i,r%i\tR%i=R%i%%R%i=0X%08X,R%i=R%i/R%i=0X%08X,SR=0X%08X\n", *PC, RI4, Z, X, Y, RI4, X, Y, REGISTER[RI4], Z, X, Y, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else if (REGISTER[Y] == 0) {
@@ -538,7 +542,7 @@ void DIVS (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR
 
         std::fprintf(output, "0X%08X:\tdivs r%i,r%i,r%i,r%i\tR%i=R%i%%R%i=0X%08X,R%i=R%i/R%i=0X%08X,SR=0X%08X\n", *PC, RI4, Z, X, Y, RI4, X, Y, REGISTER[RI4], Z, X, Y, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else if (REGISTER[RI4] != 0) {
@@ -546,14 +550,14 @@ void DIVS (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR
 
         std::fprintf(output, "0X%08X:\tdivs r%i,r%i,r%i,r%i\tR%i=R%i%%R%i=0X%08X,R%i=R%i/R%i=0X%08X,SR=0X%08X\n", *PC, RI4, Z, X, Y, RI4, X, Y, REGISTER[RI4], Z, X, Y, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else {
         *SR = 0X00000000;
         std::fprintf(output, "0X%08X:\tdivs r%i,r%i,r%i,r%i\tR%i=R%i%%R%i=0X%08X,R%i=R%i/R%i=0X%08X,SR=0X%08X\n", *PC, RI4, Z, X, Y, RI4, X, Y, REGISTER[RI4], Z, X, Y, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
     }
                 
@@ -594,24 +598,24 @@ void SRA (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
     if (result == 0) {
         *SR = 0x00000040;
 
-        std::fprintf(output, "0X%08X:\tsra r%i,r%i,r%i,%i\tR%i:R%i=R%i:R%i>>%i=0X%016llX,SR=0X%08X\n", *PC, Z, X, Y, offset, Z, Y, Z, X, offset, result, *SR);
+        std::fprintf(output, "0X%08X:\tsra r%i,r%i,r%i,%i\tR%i:R%i=R%i:R%i>>%i=0X%016lX,SR=0X%08X\n", *PC, Z, X, Y, offset, Z, Y, Z, X, offset, result, *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else if (REGISTER[Z] != 0) {
         *SR = 0X00000008;
 
-        std::fprintf(output, "0X%08X:\tsra r%i,r%i,r%i,%i\tR%i:R%i=R%i:R%i>>%i=0X%016llX,SR=0X%08X\n", *PC, Z, X, Y, offset, Z, Y, Z, X, offset, result, *SR);
+        std::fprintf(output, "0X%08X:\tsra r%i,r%i,r%i,%i\tR%i:R%i=R%i:R%i>>%i=0X%016lX,SR=0X%08X\n", *PC, Z, X, Y, offset, Z, Y, Z, X, offset, result, *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else {
         *SR = 0X00000000;
-        std::fprintf(output, "0X%08X:\tsra r%i,r%i,r%i,%i\tR%i:R%i=R%i:R%i>>%i=0X%016llX,SR=0X%08X\n", *PC, Z, X, Y, offset, Z, Y, Z, X, offset, result, *SR);
+        std::fprintf(output, "0X%08X:\tsra r%i,r%i,r%i,%i\tR%i:R%i=R%i:R%i>>%i=0X%016lX,SR=0X%08X\n", *PC, Z, X, Y, offset, Z, Y, Z, X, offset, result, *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
     }
 
@@ -647,7 +651,7 @@ void CMP (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
 
         std::fprintf(output, "0X%08X:\tcmp r%i,r%i\tSR=0X%08X\n", *PC, X, Y, *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else if (cmp31 == 1) {
@@ -655,7 +659,7 @@ void CMP (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
 
         std::fprintf(output, "0X%08X:\tcmp r%i,r%i\tSR=0X%08X\n", *PC, X, Y, *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else if ( (RX31 != RY31) && (cmp31 != RX31) ) {
@@ -663,7 +667,7 @@ void CMP (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
 
         std::fprintf(output, "0X%08X:\tcmp r%i,r%i\tSR=0X%08X\n", *PC, X, Y, *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else if (CMPCY == 1) {
@@ -671,14 +675,14 @@ void CMP (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
 
         std::fprintf(output, "0X%08X:\tcmp r%i,r%i\tSR=0X%08X\n", *PC, X, Y, *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else {
         *SR = 0X00000000;
         std::fprintf(output, "0X%08X:\tcmp r%i,r%i\tSR=0X%08X\n", *PC, X, Y, *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];    
     }
             
@@ -708,7 +712,7 @@ void AND (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
 
         std::fprintf(output, "0X%08X:\tand r%i,r%i,r%i\tR%i=R%i&R%i=0X%08X,SR=0X%08X\n", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else if (RZ31 == 1) {
@@ -716,7 +720,7 @@ void AND (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
 
         std::fprintf(output, "0X%08X:\tand r%i,r%i,r%i\tR%i=R%i&R%i=0X%08X,SR=0X%08X\n", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else {
@@ -724,7 +728,7 @@ void AND (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
 
         std::fprintf(output, "0X%08X:\tand r%i,r%i,r%i\tR%i=R%i&R%i=0X%08X,SR=0X%08X\n", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];    
 
     }
@@ -755,7 +759,7 @@ void OR (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR, 
 
         std::fprintf(output, "0X%08X:\tor r%i,r%i,r%i\tR%i=R%i|R%i=0X%08X,SR=0X%08X\n", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else if (RZ31 == 1) {
@@ -763,7 +767,7 @@ void OR (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR, 
 
         std::fprintf(output, "0X%08X:\tor r%i,r%i,r%i\tR%i=R%i|R%i=0X%08X,SR=0X%08X\n", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else {
@@ -771,7 +775,7 @@ void OR (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR, 
 
         std::fprintf(output, "0X%08X:\tor r%i,r%i,r%i\tR%i=R%i|R%i=0X%08X,SR=0X%08X\n", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];    
 
     }
@@ -798,7 +802,7 @@ void NOT (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
 
         std::fprintf(output, "0X%08X:\tnot r%i,r%i\tR%i=~R%i=0X%08X,SR=0X%08X\n", *PC, Z, X, Z, X, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else if (RZ31 == 1) {
@@ -806,7 +810,7 @@ void NOT (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
 
         std::fprintf(output, "0X%08X:\tnot r%i,r%i\tR%i=~R%i=0X%08X,SR=0X%08X\n", *PC, Z, X, Z, X, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else {
@@ -814,7 +818,7 @@ void NOT (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
 
         std::fprintf(output, "0X%08X:\tnot r%i,r%i\tR%i=~R%i=0X%08X,SR=0X%08X\n", *PC, Z, X, Z, X, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
     }
 
@@ -844,7 +848,7 @@ void XOR (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
 
         std::fprintf(output, "0X%08X:\txor r%i,r%i,r%i\tR%i=R%i^R%i=0X%08X,SR=0X%08X\n", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
         
     } else if (RZ31 == 1) {
@@ -852,7 +856,7 @@ void XOR (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
 
         std::fprintf(output, "0X%08X:\txor r%i,r%i,r%i\tR%i=R%i^R%i=0X%08X,SR=0X%08X\n", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else {
@@ -860,7 +864,7 @@ void XOR (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
 
         std::fprintf(output, "0X%08X:\txor r%i,r%i,r%i\tR%i=R%i^R%i=0X%08X,SR=0X%08X\n", *PC, Z, X, Y, Z, X, Y, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];    
 
     }
@@ -891,53 +895,53 @@ void PUSH (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *RE
 
     if (V != 0) {
         MEM[*SP] = REGISTER[V];
-        *SP = *SP - 4;
+        *SP = *SP - 1;
 
         std::fprintf(output, "0X%08X:\tpush r%i\tMEM[0X%08X]{0X%08X}={R%i}\n", *PC, V, *SP, V, V);
         
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else if (W != 0) {
         MEM[*SP] = REGISTER[W];
-        *SP = *SP - 4;
+        *SP = *SP - 1;
 
         std::fprintf(output, "0X%08X:\tpush r%i\tMEM[0X%08X]{0X%08X}={R%i}\n", *PC, W, *SP, W, W);
         
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else if (X != 0 ) {
         MEM[*SP] = REGISTER[X];
-        *SP = *SP - 4;
+        *SP = *SP - 1;
 
         std::fprintf(output, "0X%08X:\tpush r%i\tMEM[0X%08X]{0X%08X}={R%i}\n", *PC, X, *SP, X, X);
         
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else if (Y != 0) {
         MEM[*SP] = REGISTER[Y];
-        *SP = *SP - 4;
+        *SP = *SP - 1;
 
         std::fprintf(output, "0X%08X:\tpush r%i\tMEM[0X%08X]{0X%08X}={R%i}\n", *PC, Y, *SP, Y, Y);
         
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else if (Z != 0) {
         MEM[*SP] = REGISTER[Z];
-        *SP = *SP - 4;
+        *SP = *SP - 1;
 
         std::fprintf(output, "0X%08X:\tpush r%i\tMEM[0X%08X]{0X%08X}={R%i}\n", *PC, Z, *SP, Z, Z);
         
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else {
         std::fprintf(output, "0X%08X:\tpush -\tMEM[0X%08X]{}={}\n", *PC, *SP);
         
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     }
@@ -969,53 +973,53 @@ void POP (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *REG
 
     if (V != 0) {
         REGISTER[V] = MEM[*SP];
-        *SP = *SP + 4;
+        *SP = *SP + 1;
 
         std::fprintf(output, "0X%08X:\tpop r%i\t{R%i}=MEM[0X%08X]{0X%08X}\n", *PC, V, V, *SP, V);
         
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else if (W != 0) {
         REGISTER[W] = MEM[*SP];
-        *SP = *SP + 4;
+        *SP = *SP + 1;
 
         std::fprintf(output, "0X%08X:\tpop r%i\t{R%i}=MEM[0X%08X]{0X%08X}\n", *PC, W, W, *SP, W);
         
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else if (X != 0 ) {
         REGISTER[X] = MEM[*SP];
-        *SP = *SP + 4;
+        *SP = *SP + 1;
 
         std::fprintf(output, "0X%08X:\tpop r%i\t{R%i}=MEM[0X%08X]{0X%08X}\n", *PC, X, X, *SP, X);
         
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else if (Y != 0) {
         REGISTER[Y] = MEM[*SP];
-        *SP = *SP + 4;
+        *SP = *SP + 1;
 
         std::fprintf(output, "0X%08X:\tpop r%i\t{R%i}=MEM[0X%08X]{0X%08X}\n", *PC, Y, Y, *SP, Y);
         
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else if (Z != 0) {
         REGISTER[Z] = MEM[*SP];
-        *SP = *SP + 4;
+        *SP = *SP + 1;
 
         std::fprintf(output, "0X%08X:\tpop r%i\t{R%i}=MEM[0X%08X]{0X%08X}\n", *PC, Z, Z, *SP, Z);
         
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else {
         std::fprintf(output, "0X%08X:\tpop -\t{}=MEM[0X%08X]{}\n", *PC, *SP);
         
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     }
@@ -1055,7 +1059,7 @@ void ADDI (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR
 
         std::fprintf(output, "0X%08X:\taddi r%i,r%i,%i\tR%i=R%i+0X%08X=0X%08X,SR=0X%08X\n", *PC, Z, X, I15, Z, X, I15, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else if (RZ31 == 1) {
@@ -1063,7 +1067,7 @@ void ADDI (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR
 
         std::fprintf(output, "0X%08X:\taddi r%i,r%i,%i\tR%i=R%i+0X%08X=0X%08X,SR=0X%08X\n", *PC, Z, X, I15, Z, X, I15, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else if ( (RX31 != checkI15) && (RZ31 != RX31) ) {
@@ -1071,7 +1075,7 @@ void ADDI (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR
 
         std::fprintf(output, "0X%08X:\taddi r%i,r%i,%i\tR%i=R%i+0X%08X=0X%08X,SR=0X%08X\n", *PC, Z, X, I15, Z, X, I15, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else if (result == 1) {
@@ -1079,7 +1083,7 @@ void ADDI (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR
 
         std::fprintf(output, "0X%08X:\taddi r%i,r%i,%i\tR%i=R%i+0X%08X=0X%08X,SR=0X%08X\n", *PC, Z, X, I15, Z, X, I15, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else {
@@ -1087,7 +1091,7 @@ void ADDI (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR
 
         std::fprintf(output, "0X%08X:\taddi r%i,r%i,%i\tR%i=R%i+0X%08X=0X%08X,SR=0X%08X\n", *PC, Z, X, I15, Z, X, I15, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];    
     }
 
@@ -1127,7 +1131,7 @@ void SUBI (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR
 
         std::fprintf(output, "0X%08X:\tsubi r%i,r%i,%i\tR%i=R%i-0X%08X=0X%08X,SR=0X%08X\n", *PC, Z, X, I15, Z, X, I15, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else if (RZ31 == 1) {
@@ -1135,7 +1139,7 @@ void SUBI (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR
 
         std::fprintf(output, "0X%08X:\tsubi r%i,r%i,%i\tR%i=R%i-0X%08X=0X%08X,SR=0X%08X\n", *PC, Z, X, I15, Z, X, I15, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else if ( (RX31 != checkI15) && (RZ31 != RX31) ) {
@@ -1143,7 +1147,7 @@ void SUBI (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR
 
         std::fprintf(output, "0X%08X:\tsubi r%i,r%i,%i\tR%i=R%i-0X%08X=0X%08X,SR=0X%08X\n", *PC, Z, X, I15, Z, X, I15, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else if (result == 1) {
@@ -1151,7 +1155,7 @@ void SUBI (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR
 
         std::fprintf(output, "0X%08X:\tsubi r%i,r%i,%i\tR%i=R%i-0X%08X=0X%08X,SR=0X%08X\n", *PC, Z, X, I15, Z, X, I15, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else {
@@ -1159,7 +1163,7 @@ void SUBI (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR
 
         std::fprintf(output, "0X%08X:\tsubi r%i,r%i,%i\tR%i=R%i-0X%08X=0X%08X,SR=0X%08X\n", *PC, Z, X, I15, Z, X, I15, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];    
     }
 
@@ -1193,7 +1197,7 @@ void MULI (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR
 
         std::fprintf(output, "0X%08X:\tmuli r%i,r%i,%i\tR%i=R%i*0X%08X=0X%08X,SR=0X%08X\n", *PC, Z, X, I15, Z, X, I15, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else if (result != 0) {
@@ -1201,7 +1205,7 @@ void MULI (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR
 
         std::fprintf(output, "0X%08X:\tmuli r%i,r%i,%i\tR%i=R%i*0X%08X=0X%08X,SR=0X%08X\n", *PC, Z, X, I15, Z, X, I15, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else {
@@ -1209,7 +1213,7 @@ void MULI (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR
 
         std::fprintf(output, "0X%08X:\tmuli r%i,r%i,%i\tR%i=R%i*0X%08X=0X%08X,SR=0X%08X\n", *PC, Z, X, I15, Z, X, I15, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];    
     }
 
@@ -1238,7 +1242,7 @@ void DIVI (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR
 
         std::fprintf(output, "0X%08X:\tdivi r%i,r%i,%i\tR%i=R%i/0X%08X=0X%08X,SR=0X%08X\n", *PC, Z, X, I15, Z, X, I15, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
         
     } else if (I15 == 0) {
@@ -1246,7 +1250,7 @@ void DIVI (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR
 
         std::fprintf(output, "0X%08X:\tdivi r%i,r%i,%i\tR%i=R%i/0X%08X=0X%08X,SR=0X%08X\n", *PC, Z, X, I15, Z, X, I15, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else {
@@ -1254,7 +1258,7 @@ void DIVI (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR
 
         std::fprintf(output, "0X%08X:\tdivi r%i,r%i,%i\tR%i=R%i/0X%08X=0X%08X,SR=0X%08X\n", *PC, Z, X, I15, Z, X, I15, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];    
     }
 
@@ -1283,7 +1287,7 @@ void MODI (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR
 
         std::fprintf(output, "0X%08X:\tmodi r%i,r%i,%i\tR%i=R%i%%0X%08X=0X%08X,SR=0X%08X\n", *PC, Z, X, I15, Z, X, I15, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
         
     } else if (I15 == 0) {
@@ -1291,14 +1295,14 @@ void MODI (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR
 
         std::fprintf(output, "0X%08X:\tmodi r%i,r%i,%i\tR%i=R%i%%0X%08X=0X%08X,SR=0X%08X\n", *PC, Z, X, I15, Z, X, I15, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
     } else {
         *SR = 0X00000000;
 
         std::fprintf(output, "0X%08X:\tmodi r%i,r%i,%i\tR%i=R%i%%0X%08X=0X%08X,SR=0X%08X\n", *PC, Z, X, I15, Z, X, I15, REGISTER[Z], *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];    
     }
 
@@ -1333,7 +1337,7 @@ void CMPI (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR
 
         std::fprintf(output, "0X%08X:\tcmpi r%i,%i\tSR=0X%08X\n", *PC, X, I15, *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
         
     } else if (CMPI31 == 1) {
@@ -1341,7 +1345,7 @@ void CMPI (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR
 
         std::fprintf(output, "0X%08X:\tcmpi r%i,%i\tSR=0X%08X\n", *PC, X, I15, *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else if ((RX31 != checkI15) && (CMPI31 != RX31)) {
@@ -1349,7 +1353,7 @@ void CMPI (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR
 
         std::fprintf(output, "0X%08X:\tcmpi r%i,%i\tSR=0X%08X\n", *PC, X, I15, *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else if (CMP32 == 1) {
@@ -1357,7 +1361,7 @@ void CMPI (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR
 
         std::fprintf(output, "0X%08X:\tcmpi r%i,%i\tSR=0X%08X\n", *PC, X, I15, *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     } else {
@@ -1365,7 +1369,7 @@ void CMPI (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR
     
         std::fprintf(output, "0X%08X:\tcmpi r%i,%i\tSR=0X%08X\n", *PC, X, I15, *SR);
 
-        *PC = *PC + 4;
+        *PC = *PC + 1;
         *IR = MEM[*PC];
 
     }
@@ -1393,7 +1397,7 @@ void L8 (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *REGI
 
     std::fprintf(output, "0X%08X:\tl8 r%i,[r%i+-%i]\tR%i=MEM[0X%08X]=0X%02X\n", *PC, Z, X, I15, Z, L8, REGISTER[Z]);
 
-    *PC = *PC + 4;
+    *PC = *PC + 1;
     *IR = MEM[*PC];
 }
 
@@ -1419,7 +1423,7 @@ void L16 (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *REG
 
     std::fprintf(output, "0X%08X:\tl16 r%i,[r%i+-%i]\tR%i=MEM[0X%08X]=0X%04X\n", *PC, Z, X, I15, Z, L16, REGISTER[Z]);
 
-    *PC = *PC + 4;
+    *PC = *PC + 1;
     *IR = MEM[*PC];
 }
 
@@ -1445,7 +1449,7 @@ void L32 (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *REG
 
     std::fprintf(output, "0X%08X:\tl32 r%i,[r%i+-%i]\tR%i=MEM[0X%08X]=0X%08X\n", *PC, Z, X, I15, Z, L32, REGISTER[Z]);
 
-    *PC = *PC + 4;
+    *PC = *PC + 1;
     *IR = MEM[*PC];
 }
 
@@ -1470,7 +1474,7 @@ void S8 (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *REGI
 
     std::fprintf(output, "0X%08X:\ts8 [r%i+-%i],r%i\tMEM[0X%08X]=R%i=0X%02X\n", *PC, X, I15, Z, S8, Z, REGISTER[Z]);
 
-    *PC = *PC + 4;
+    *PC = *PC + 1;
     *IR = MEM[*PC];
 }
 
@@ -1496,7 +1500,7 @@ void S16 (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *REG
 
     std::fprintf(output, "0X%08X:\ts16 [r%i+-%i],r%i\tMEM[0X%08X]=R%i=0X%04X\n", *PC, X, I15, Z, S16, Z, REGISTER[Z]);
 
-    *PC = *PC + 4;
+    *PC = *PC + 1;
     *IR = MEM[*PC];
 }
 
@@ -1522,7 +1526,7 @@ void S32 (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *REG
 
     std::fprintf(output, "0X%08X:\ts32 [r%i+-%i],r%i\tMEM[0X%08X]=R%i=0X%08X\n", *PC, X, I15, Z, S32, Z, REGISTER[Z]);
 
-    *PC = *PC + 4;
+    *PC = *PC + 1;
     *IR = MEM[*PC];
 }
 
@@ -1538,9 +1542,9 @@ void CALLF (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *R
     uint32_t checkI15 = I15 >> 15;
     if (checkI15 == 1) I15 = ( I15 | 0xFFFF0000);
 
-    MEM[*SP] = (*PC + 4);
+    MEM[*SP] = (*PC + 1);
 
-    *SP = *SP - 4;
+    *SP = *SP - 1;
 
     uint32_t initialPC = *PC;
 
@@ -1563,16 +1567,16 @@ void CALLS (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t * 
     uint32_t checkI25 = I25 >> 25;
     if (checkI25 == 1) I25 = ( I25 | 0xFC000000);
 
-    MEM[*SP] = (*PC + 4);
+    MEM[*SP] = (*PC + 1);
 
-    *SP = *SP - 4;
+    *SP = *SP - 1;
 
     uint32_t initialPC = *PC;
 
     //PC OP:
     uint32_t pcResult = I25;
     pcResult = pcResult << 2;
-    pcResult = (pcResult) + (*PC + 4);
+    pcResult = (pcResult) + (*PC + 1);
     *PC = pcResult;
 
     std::fprintf(output, "0X%08X:\tcall %i\tPC=0X%08X,MEM[0X%08X]=0X%08X\n", initialPC, I25, *PC, *SP, MEM[*SP]);
@@ -1582,7 +1586,7 @@ void CALLS (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t * 
 
 void RET (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t * SP) {
     
-    *SP = *SP + 4;
+    *SP = *SP + 1;
 
     uint32_t initialPC = *PC;
 
@@ -1604,7 +1608,7 @@ void BAE (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
     BAE = BAE << 2;
 
     uint32_t initialPC = *PC;
-    *PC = *PC + 4 + BAE; 
+    *PC = *PC + 1 + BAE; 
 
     std::fprintf(output, "0X%08X:\tbae %i\tPC=0X%08X\n", initialPC, I25, *PC);
 
@@ -1622,7 +1626,7 @@ void BAT (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
     BAT = BAT << 2;
 
     uint32_t initialPC = *PC;
-    *PC = *PC + 4 + BAT; 
+    *PC = *PC + 1 + BAT; 
 
     std::fprintf(output, "0X%08X:\tbat %i\tPC=0X%08X\n", initialPC, I25, *PC);
 
@@ -1640,7 +1644,7 @@ void BBE (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
     BBE = BBE << 2;
 
     uint32_t initialPC = *PC;
-    *PC = *PC + 4 + BBE; 
+    *PC = *PC + 1 + BBE; 
 
     std::fprintf(output, "0X%08X:\tbbe %i\tPC=0X%08X\n", initialPC, I25, *PC);
 
@@ -1658,7 +1662,7 @@ void BBT (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
     BBT = BBT << 2;
 
     uint32_t initialPC = *PC;
-    *PC = *PC + 4 + BBT; 
+    *PC = *PC + 1 + BBT; 
 
     std::fprintf(output, "0X%08X:\tbbt %i\tPC=0X%08X\n", initialPC, I25, *PC);
 
@@ -1676,7 +1680,7 @@ void BEQ (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
     BEQ = BEQ << 2;
 
     uint32_t initialPC = *PC;
-    *PC = *PC + 4 + BEQ; 
+    *PC = *PC + 1 + BEQ; 
 
     std::fprintf(output, "0X%08X:\tbeq %i\tPC=0X%08X\n", initialPC, I25, *PC);
 
@@ -1694,7 +1698,7 @@ void BGE (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
     BGE = BGE << 2;
 
     uint32_t initialPC = *PC;
-    *PC = *PC + 4 + BGE; 
+    *PC = *PC + 1 + BGE; 
 
     std::fprintf(output, "0X%08X:\tbge %i\tPC=0X%08X\n", initialPC, I25, *PC);
 
@@ -1712,7 +1716,7 @@ void BGT (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
     BGT = BGT << 2;
 
     uint32_t initialPC = *PC;
-    *PC = *PC + 4 + BGT; 
+    *PC = *PC + 1 + BGT; 
 
     std::fprintf(output, "0X%08X:\tbgt %i\tPC=0X%08X\n", initialPC, I25, *PC);
 
@@ -1730,7 +1734,7 @@ void BIV (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
     BIV = BIV << 2;
 
     uint32_t initialPC = *PC;
-    *PC = *PC + 4 + BIV; 
+    *PC = *PC + 1 + BIV; 
 
     std::fprintf(output, "0X%08X:\tbiv %i\tPC=0X%08X\n", initialPC, I25, *PC);
 
@@ -1748,7 +1752,7 @@ void BLE (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
     BLE = BLE << 2;
 
     uint32_t initialPC = *PC;
-    *PC = *PC + 4 + BLE; 
+    *PC = *PC + 1 + BLE; 
 
     std::fprintf(output, "0X%08X:\tble %i\tPC=0X%08X\n", initialPC, I25, *PC);
 
@@ -1766,7 +1770,7 @@ void BLT (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
     BLT = BLT << 2;
 
     uint32_t initialPC = *PC;
-    *PC = *PC + 4 + BLT; 
+    *PC = *PC + 1 + BLT; 
 
     std::fprintf(output, "0X%08X:\tblt %i\tPC=0X%08X\n", initialPC, I25, *PC);
 
@@ -1784,7 +1788,7 @@ void BNE (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
     BNE = BNE << 2;
 
     uint32_t initialPC = *PC;
-    *PC = *PC + 4 + BNE; 
+    *PC = *PC + 1 + BNE; 
 
     std::fprintf(output, "0X%08X:\tbne %i\tPC=0X%08X\n", initialPC, I25, *PC);
 
@@ -1802,7 +1806,7 @@ void BNI (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
     BNI = BNI << 2;
 
     uint32_t initialPC = *PC;
-    *PC = *PC + 4 + BNI; 
+    *PC = *PC + 1 + BNI; 
 
     std::fprintf(output, "0X%08X:\tbni %i\tPC=0X%08X\n", initialPC, I25, *PC);
 
@@ -1820,7 +1824,7 @@ void BNZ (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
     BNZ = BNZ << 2;
 
     uint32_t initialPC = *PC;
-    *PC = *PC + 4 + BNZ; 
+    *PC = *PC + 1 + BNZ; 
 
     std::fprintf(output, "0X%08X:\tbnz %i\tPC=0X%08X\n", initialPC, I25, *PC);
 
@@ -1838,7 +1842,7 @@ void BUN (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
     BUN = BUN << 2;
 
     uint32_t initialPC = *PC;
-    *PC = *PC + 4 + BUN; 
+    *PC = *PC + 1 + BUN; 
 
     std::fprintf(output, "0X%08X:\tbun %i\tPC=0X%08X\n", initialPC, I25, *PC);
 
@@ -1856,7 +1860,7 @@ void BZD (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
     BZD = BZD << 2;
 
     uint32_t initialPC = *PC;
-    *PC = *PC + 4 + BZD; 
+    *PC = *PC + 1 + BZD; 
 
     std::fprintf(output, "0X%08X:\tbzd %i\tPC=0X%08X\n", initialPC, I25, *PC);
 
@@ -1884,8 +1888,8 @@ int main(int argc, char const *argv[])
         FILE* input = fopen(argv[1], "r");
 	    FILE* output = fopen(argv[2], "w");
 
-    //32KiB MEMORY  => (32768/4) = 8192
-        uint32_t * MEM = (uint32_t*) calloc(8192, sizeof(uint32_t));
+    //32KiB MEMORY  => (32764/4) = 8191
+        uint32_t * MEM = (uint32_t*) calloc(8191, sizeof(uint32_t));
 
     //Insertion of Hexadecimals to MEMORY
 
@@ -1925,301 +1929,306 @@ int main(int argc, char const *argv[])
     {
         opcode = (*IR & 0xFC000000) >> 26;
 
-        switch (opcode)
-        {
+        if (*IR == 0x00000000) {
+            *PC = *PC + 4;
+        } else {
         
-        // ----------- TYPE U OPERATIONS -----------
-        case 0X00:
+            switch (opcode)
             {
-                if (*IR == 0){
-                    NOP(output, PC, IR, MEM);
-                }
-                else {
-                    MOV(output, PC, IR, MEM, REGISTER);
-                }
-
-                break;
-            }
-        //TYPE U - MOVS
-        case 0X01:
-            {
-                MOVS(output, PC, IR, MEM, REGISTER);
-                break;
-            }
-        //TYPE U - ADD
-        case 0X02:
-            {
-                ADD(output, PC, IR, MEM, SR, REGISTER);
-                break;
-            }
-        //TYPE U - SUB
-        case 0X03:
-            {
-                SUB(output, PC, IR, MEM, SR, REGISTER);
-                break;
-            }
-        case 0X04:
-            {    
-                uint32_t checkIsOp = (*IR & 0X00000700) >> 8;
-
-                //If is MUL:
-                if (checkIsOp == 0) {
-
-                    MUL(output, PC, IR, MEM, SR, REGISTER);
-                    break;                
-
-                }
-                
-                //If is SLL:
-                if (checkIsOp == 0X00000001){
-                    
-                    SLL(output, PC, IR, MEM, SR, REGISTER);
-                    break;
-                } 
-                
-                //If is MULS:
-                if (checkIsOp == 0X00000002) {
-                    
-                    MULS(output, PC, IR, MEM, SR, REGISTER);
-                    break;
-                }
-
-                //If is SLA:
-                if (checkIsOp == 0X00000003) {
-                    
-                    SLA(output, PC, IR, MEM, SR, REGISTER);
-                    break;
-                }
             
-                //If is DIV:
-                if (checkIsOp == 0x00000004) {
-                    
-                    DIV(output, PC, IR, MEM, SR, REGISTER);
-                    break;
-                }
+                // ----------- TYPE U OPERATIONS -----------
+                case 0X00:
+                    {
+                        // if (*IR == 0){
+                        //     NOP(output, PC, IR, MEM);
+                        // }
+                        // else {
+                            MOV(output, PC, IR, MEM, REGISTER);
+                        // }
 
-                //If is SRL:
-                if (checkIsOp == 0x00000005) {
-                    
-                    SRL(output, PC, IR, MEM, SR, REGISTER);
-                    break;
-                }
+                        break;
+                    }
+                //TYPE U - MOVS
+                case 0X01:
+                    {
+                        MOVS(output, PC, IR, MEM, REGISTER);
+                        break;
+                    }
+                //TYPE U - ADD
+                case 0X02:
+                    {
+                        ADD(output, PC, IR, MEM, SR, REGISTER);
+                        break;
+                    }
+                //TYPE U - SUB
+                case 0X03:
+                    {
+                        SUB(output, PC, IR, MEM, SR, REGISTER);
+                        break;
+                    }
+                case 0X04:
+                    {    
+                        uint32_t checkIsOp = (*IR & 0X00000700) >> 8;
 
-                //If is DIVS:
-                if (checkIsOp == 0x00000006) {
-                    
-                    DIVS(output, PC, IR, MEM, SR, REGISTER);
-                    break;
-                }
+                        //If is MUL:
+                        if (checkIsOp == 0) {
 
-                //If is SRA:
-                if (checkIsOp == 0x00000007) {
-                    
-                    SRA(output, PC, IR, MEM, SR, REGISTER);
-                    break;
-                }
-                
-                break;
-            }
-        case 0X05: 
-            {
-                CMP(output, PC, IR, MEM, SR, REGISTER);
-                break;
-            }
-        case 0x06: 
-            {
-                AND(output, PC, IR, MEM, SR, REGISTER);
-                break;
-            }
-        case 0X07:
-            {
-                OR(output, PC, IR, MEM, SR, REGISTER);
-                break;
-            }
-        case 0X08:
-            {    
-                NOT(output, PC, IR, MEM, SR, REGISTER);
-                break;
-            }
-        case 0X09:
-            {
-                XOR(output, PC, IR, MEM, SR, REGISTER);
-                break;
-            }
-        case 0X0A:
-            {
-                PUSH(output, PC, IR, MEM, REGISTER, SP);
-                break;
-            }
-        case 0X0B:
-            {
-                POP(output, PC, IR, MEM, REGISTER, SP);
-                break;
-            }
+                            MUL(output, PC, IR, MEM, SR, REGISTER);
+                            break;                
 
-        // ----------- TYPE F OPERATIONS -----------
-        case 0X12:
-            {
-                ADDI(output, PC, IR, MEM, SR, REGISTER);
-                break;
-            }
-        case 0X13:
-            {
-                SUBI(output, PC, IR, MEM, SR, REGISTER);
-                break;
-            }
-        case 0X14:
-            {
-                MULI(output, PC, IR, MEM, SR, REGISTER);
-                break;
-            }        
-        case 0X15:
-            {
-                DIVI(output, PC, IR, MEM, SR, REGISTER);
-                break;
-            }
-        case 0X16:
-            {
-                MODI(output, PC, IR, MEM, SR, REGISTER);
-                break;
-            }
-        case 0X17:
-            {
-                CMPI(output, PC, IR, MEM, SR, REGISTER);
-                break;
-            }
-        case 0X18:
-            {
-                L8(output, PC, IR, MEM, REGISTER);
-                break;
-            }
-        case 0X19:
-            {
-                L16(output, PC, IR, MEM, REGISTER);
-                break;
-            }
-        case 0X1A:
-            {
-                L32(output, PC, IR, MEM, REGISTER);
-                break;
-            }
-        case 0X1B:
-            {
-                S8(output, PC, IR, MEM, REGISTER);
-                break;
-            }
-        case 0X1C:
-            {
-                S16(output, PC, IR, MEM, REGISTER);
-                break;
-            }
-        case 0X1D:
-            {
-                S32(output, PC, IR, MEM, REGISTER);
-                break;
-            }
-        case 0X1E:
-            {
-                CALLF(output, PC, IR, MEM, REGISTER, SP);
-                break;
-            }
-        case 0X1F:
-            {
-                RET(output, PC, IR, MEM, SP);
-                break;
-            }
-        case 0X29:
-            {
-                CALLS(output, PC, IR, MEM, SP);
-                break;
-            }
-        case 0X2A:
-            {
-                BAE(output, PC, IR, MEM);
-                break;
-            }
-        case 0X2B:
-            {
-                BAT(output, PC, IR, MEM);
-                break;
-            }
-        case 0X2C:
-            {
-                BBE(output, PC, IR, MEM);
-                break;
-            }
-        case 0X2D:
-            {
-                BBT(output, PC, IR, MEM);
-                break;
-            }
-        case 0X2E:
-            {
-                BEQ(output, PC, IR, MEM);
-                break;
-            }
-        case 0X2F:
-            {
-                BGE(output, PC, IR, MEM);
-                break;
-            }
-        case 0X30:
-            {
-                BGT(output, PC, IR, MEM);
-                break;
-            }
-        case 0X31:
-            {
-                BIV(output, PC, IR, MEM);
-                break;
-            }
-        case 0X32:
-            {
-                BLE(output, PC, IR, MEM);
-                break;
-            }
-        case 0X33:
-            {
-                BLT(output, PC, IR, MEM);
-                break;
-            }
-        case 0X34:
-            {
-                BNE(output, PC, IR, MEM);
-                break;
-            }
-        case 0X35:
-            {
-                BNI(output, PC, IR, MEM);
-                break;
-            }
-        case 0X36:
-            {
-                BNZ(output, PC, IR, MEM);
-                break;
-            }
-        case 0X37:
-            {
-                BUN(output, PC, IR, MEM);
-                break;
-            }
-        case 0X38:
-            {
-                BZD(output, PC, IR, MEM);
-                break;
-            }
-        case 0X3F:
-            {
-                INT(output, PC, IR, &loopControl);
-                break;
-            }
-        default:
-            {
-                std::fprintf(output, "[INVALID INSTRUCTION @ 0X%08X\n", *IR);                    
-                break;
+                        }
+                        
+                        //If is SLL:
+                        if (checkIsOp == 0X00000001){
+                            
+                            SLL(output, PC, IR, MEM, SR, REGISTER);
+                            break;
+                        } 
+                        
+                        //If is MULS:
+                        if (checkIsOp == 0X00000002) {
+                            
+                            MULS(output, PC, IR, MEM, SR, REGISTER);
+                            break;
+                        }
+
+                        //If is SLA:
+                        if (checkIsOp == 0X00000003) {
+                            
+                            SLA(output, PC, IR, MEM, SR, REGISTER);
+                            break;
+                        }
+                    
+                        //If is DIV:
+                        if (checkIsOp == 0x00000004) {
+                            
+                            DIV(output, PC, IR, MEM, SR, REGISTER);
+                            break;
+                        }
+
+                        //If is SRL:
+                        if (checkIsOp == 0x00000005) {
+                            
+                            SRL(output, PC, IR, MEM, SR, REGISTER);
+                            break;
+                        }
+
+                        //If is DIVS:
+                        if (checkIsOp == 0x00000006) {
+                            
+                            DIVS(output, PC, IR, MEM, SR, REGISTER);
+                            break;
+                        }
+
+                        //If is SRA:
+                        if (checkIsOp == 0x00000007) {
+                            
+                            SRA(output, PC, IR, MEM, SR, REGISTER);
+                            break;
+                        }
+                        
+                        break;
+                    }
+                case 0X05: 
+                    {
+                        CMP(output, PC, IR, MEM, SR, REGISTER);
+                        break;
+                    }
+                case 0x06: 
+                    {
+                        AND(output, PC, IR, MEM, SR, REGISTER);
+                        break;
+                    }
+                case 0X07:
+                    {
+                        OR(output, PC, IR, MEM, SR, REGISTER);
+                        break;
+                    }
+                case 0X08:
+                    {    
+                        NOT(output, PC, IR, MEM, SR, REGISTER);
+                        break;
+                    }
+                case 0X09:
+                    {
+                        XOR(output, PC, IR, MEM, SR, REGISTER);
+                        break;
+                    }
+                case 0X0A:
+                    {
+                        PUSH(output, PC, IR, MEM, REGISTER, SP);
+                        break;
+                    }
+                case 0X0B:
+                    {
+                        POP(output, PC, IR, MEM, REGISTER, SP);
+                        break;
+                    }
+
+                // ----------- TYPE F OPERATIONS -----------
+                case 0X12:
+                    {
+                        ADDI(output, PC, IR, MEM, SR, REGISTER);
+                        break;
+                    }
+                case 0X13:
+                    {
+                        SUBI(output, PC, IR, MEM, SR, REGISTER);
+                        break;
+                    }
+                case 0X14:
+                    {
+                        MULI(output, PC, IR, MEM, SR, REGISTER);
+                        break;
+                    }        
+                case 0X15:
+                    {
+                        DIVI(output, PC, IR, MEM, SR, REGISTER);
+                        break;
+                    }
+                case 0X16:
+                    {
+                        MODI(output, PC, IR, MEM, SR, REGISTER);
+                        break;
+                    }
+                case 0X17:
+                    {
+                        CMPI(output, PC, IR, MEM, SR, REGISTER);
+                        break;
+                    }
+                case 0X18:
+                    {
+                        L8(output, PC, IR, MEM, REGISTER);
+                        break;
+                    }
+                case 0X19:
+                    {
+                        L16(output, PC, IR, MEM, REGISTER);
+                        break;
+                    }
+                case 0X1A:
+                    {
+                        L32(output, PC, IR, MEM, REGISTER);
+                        break;
+                    }
+                case 0X1B:
+                    {
+                        S8(output, PC, IR, MEM, REGISTER);
+                        break;
+                    }
+                case 0X1C:
+                    {
+                        S16(output, PC, IR, MEM, REGISTER);
+                        break;
+                    }
+                case 0X1D:
+                    {
+                        S32(output, PC, IR, MEM, REGISTER);
+                        break;
+                    }
+                case 0X1E:
+                    {
+                        CALLF(output, PC, IR, MEM, REGISTER, SP);
+                        break;
+                    }
+                case 0X1F:
+                    {
+                        RET(output, PC, IR, MEM, SP);
+                        break;
+                    }
+                case 0X29:
+                    {
+                        CALLS(output, PC, IR, MEM, SP);
+                        break;
+                    }
+                case 0X2A:
+                    {
+                        BAE(output, PC, IR, MEM);
+                        break;
+                    }
+                case 0X2B:
+                    {
+                        BAT(output, PC, IR, MEM);
+                        break;
+                    }
+                case 0X2C:
+                    {
+                        BBE(output, PC, IR, MEM);
+                        break;
+                    }
+                case 0X2D:
+                    {
+                        BBT(output, PC, IR, MEM);
+                        break;
+                    }
+                case 0X2E:
+                    {
+                        BEQ(output, PC, IR, MEM);
+                        break;
+                    }
+                case 0X2F:
+                    {
+                        BGE(output, PC, IR, MEM);
+                        break;
+                    }
+                case 0X30:
+                    {
+                        BGT(output, PC, IR, MEM);
+                        break;
+                    }
+                case 0X31:
+                    {
+                        BIV(output, PC, IR, MEM);
+                        break;
+                    }
+                case 0X32:
+                    {
+                        BLE(output, PC, IR, MEM);
+                        break;
+                    }
+                case 0X33:
+                    {
+                        BLT(output, PC, IR, MEM);
+                        break;
+                    }
+                case 0X34:
+                    {
+                        BNE(output, PC, IR, MEM);
+                        break;
+                    }
+                case 0X35:
+                    {
+                        BNI(output, PC, IR, MEM);
+                        break;
+                    }
+                case 0X36:
+                    {
+                        BNZ(output, PC, IR, MEM);
+                        break;
+                    }
+                case 0X37:
+                    {
+                        BUN(output, PC, IR, MEM);
+                        break;
+                    }
+                case 0X38:
+                    {
+                        BZD(output, PC, IR, MEM);
+                        break;
+                    }
+                case 0X3F:
+                    {
+                        INT(output, PC, IR, &loopControl);
+                        break;
+                    }
+                default:
+                    {
+                        std::fprintf(output, "[INVALID INSTRUCTION @ 0X%08X\n", *IR);                    
+                        exit(0);
+                        break;
+                    }
             }
         }
-
 
     }
 
