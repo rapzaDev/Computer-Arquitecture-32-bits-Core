@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <string>
 #include <math.h>
+#include <vector>
 
 using namespace std;
 
@@ -99,9 +100,6 @@ void ADD (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
     uint32_t RY31 =  REGISTER[Y] >> 31;
     uint32_t RZ31 =  REGISTER[Z] >> 31;
 
-    //SR CONTROL
-    *SR = 0X00000000;
-
     //ZN CHECK -> R[Z] = 0
     if (REGISTER[Z] == 0) *SR = (*SR | 0x00000040);
 
@@ -136,7 +134,14 @@ void SUB (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
     //Y MASK:
     Y = (*IR & 0x0000F800) >> 11;
 
-    REGISTER[Z] = ( REGISTER[X] - REGISTER[Y] );
+    //VERIFICANDO SE OS REGISTERS SAO O PC E O SP
+        uint32_t valueREGX = REGISTER[X];
+        uint32_t valueREGY = REGISTER[Y];
+
+        if ( ( X == 29 ) || ( X == 30 ) ) valueREGX = (valueREGX * 4);
+        if ( ( Y == 29 ) || ( Y == 30 ) ) valueREGY = (valueREGY * 4);
+
+        REGISTER[Z] = ( valueREGX - valueREGY );
 
     //FOR CY CHECK 
     uint64_t result = ( REGISTER[X] - REGISTER[Y] ); 
@@ -149,9 +154,6 @@ void SUB (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
 
     //Valor de impressao para PC
     uint32_t outputPC = (*PC + 4);
-
-    //SR CONTROL
-    *SR = 0X00000000;
 
     //ZN CHECK 
     if (REGISTER[Z] == 0) *SR = (*SR | 0x00000040);
@@ -197,9 +199,6 @@ void MUL (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
     //Valor de impressao do PC
     uint32_t outputPC = (*PC * 4);
 
-    //SR CONTROL
-    *SR = 0X00000000;
-
     //ZN CHECK 
     if (result == 0) *SR = (*SR | 0x00000040);
 
@@ -230,7 +229,7 @@ void SLL (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
     int32_t RI4 = ( *IR & 0X0000001F );
 
     //Adding RZ value first:
-    uint64_t result;
+    uint64_t result = 0;
     if (Z != 0 )
     {
         result = REGISTER[Z];
@@ -238,10 +237,8 @@ void SLL (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
     }
 
     //Adding RY value:
-    if (Z != 0 && Y != 0)
+    if (Y != 0)
     result = (result | REGISTER[Y]);
-
-    if (Z==0) result = REGISTER[Y];
 
     //Applying offset:
     uint32_t powV = RI4 + 1; 
@@ -254,9 +251,6 @@ void SLL (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
 
     //Valor de impressao do PC
     uint32_t outputPC = (*PC * 4);
-
-    //SR CONTROL
-    *SR = 0X00000000;
 
     //ZN CHECK 
     if (result == 0) *SR = (*SR | 0x00000040);
@@ -296,9 +290,6 @@ void MULS (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR
     //Valor de impressao do PC
     uint32_t outputPC = (*PC * 4);
 
-    //SR CONTROL
-    *SR = 0X00000000;
-
     //ZN CHECK 
     if (result == 0) *SR = (*SR | 0x00000040);
 
@@ -330,19 +321,17 @@ void SLA (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
     uint32_t RI4 = (int32_t)( *IR & 0X0000001F );
 
     //Adding RZ value first:
-    uint64_t result;
+    int64_t result = 0;
     if (Z != 0 ){
         result = REGISTER[Z];
         result = result << 32;
     }
 
     //Adding RY value:
-    if ((Y != 0 ) && (Z == 0)) result = REGISTER[Y];
-    else if (Y != 0) result = (result | REGISTER[Y]);
+    if (Y != 0) result = (result | REGISTER[Y]);
 
     //Applying offset:
     uint32_t powV = RI4 + 1; 
-    // uint32_t offset = pow(2, powV);
     uint32_t offset = powV;
     result = (result << offset);
 
@@ -353,9 +342,6 @@ void SLA (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
 
     //Valor de impressao do PC
     uint32_t outputPC = (*PC * 4);
-
-    //SR CONTROL
-    *SR = 0X00000000;
 
     //ZN CHECK 
     if (result == 0) *SR = (*SR | 0x00000040);
@@ -371,7 +357,7 @@ void SLA (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
 
 }
 
-void DIV (FILE *output, uint32_t *CR, uint32_t *IPC, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR, uint32_t *REGISTER) {
+void DIV (FILE *output, uint32_t *CR, uint32_t *IPC, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR, uint32_t *REGISTER, uint32_t *zeroSTATE) {
     uint32_t Z = 0;
     //Z MASK:
     Z = (*IR & 0x03E00000) >> 21;
@@ -387,46 +373,37 @@ void DIV (FILE *output, uint32_t *CR, uint32_t *IPC, uint32_t *PC, uint32_t *IR,
     //RI4
     uint32_t RI4 = ( *IR & 0X0000001F );
 
-    if ((RI4 != 0 ) && (Y != 0))
-    REGISTER[RI4] = ( REGISTER[X] % REGISTER[Y] );
-
-    if ((Z != 0) && (Y != 0 ))
-    REGISTER[Z] = ( REGISTER[X] / REGISTER[Y] );
-
     //Valor de PC
     uint32_t outputPC = (*PC * 4);
 
-    //SR CONTROL
-    *SR = 0X00000000;
+    //ZERO DIVISION CHECK
+    if ( (REGISTER[Y] == 0) ) {
+        *zeroSTATE = 1;
 
-    //ZN CHECK 
-    if (REGISTER[Z] == 0) *SR = (*SR | 0x00000040);
+        *SR = (*SR | 0x00000020);
 
-    //ZD CHECK
-    if (REGISTER[Y] == 0) *SR = (*SR | 0x00000020);
+        std::fprintf(output, "0X%08X:\tdiv r%i,r%i,r%i,r%i\tR%i=R%i%%R%i=0X%08X,R%i=R%i/R%i=0X%08X,SR=0X%08X\n", outputPC, RI4, Z, X, Y, RI4, X, Y, REGISTER[RI4], Z, X, Y, REGISTER[Z], *SR);
 
-    //CY CHECK
-    if (REGISTER[RI4] != 0) *SR = (*SR | 0x00000001);
-
-    //FPRINTF:
-    std::fprintf(output, "0X%08X:\tdiv r%i,r%i,r%i,r%i\tR%i=R%i%%R%i=0X%08X,R%i=R%i/R%i=0X%08X,SR=0X%08X\n", outputPC, RI4, Z, X, Y, RI4, X, Y, REGISTER[RI4], Z, X, Y, REGISTER[Z], *SR);
-
-    //SOFTWARE INTERRUPTION
-    uint32_t IE = (*SR & 0X00000002);
-    IE = IE >> 1;
-    if ( (IE == 1) && (REGISTER[Y] == 0) ) {
-        std::fprintf(output, "[SOFTWARE INTERRUPTION]\n");
-        *CR = 0;
-        
-        *IPC = *PC;
-
-        //pc = 0x00000008
-        *PC = 0X00000002;
-
+        *PC = *PC + 1;
         *IR = MEM[*PC];
-        
+
     } else {
-        
+
+        if ( RI4 != 0 )
+        REGISTER[RI4] = ( REGISTER[X] % REGISTER[Y] );
+
+        if ( Z != 0 )
+        REGISTER[Z] = ( REGISTER[X] / REGISTER[Y] );
+
+        //ZN CHECK 
+        if (REGISTER[Z] == 0) *SR = (*SR | 0x00000040);
+
+        //CY CHECK
+        if (REGISTER[RI4] != 0) *SR = (*SR | 0x00000001);
+
+        //FPRINTF:
+        std::fprintf(output, "0X%08X:\tdiv r%i,r%i,r%i,r%i\tR%i=R%i%%R%i=0X%08X,R%i=R%i/R%i=0X%08X,SR=0X%08X\n", outputPC, RI4, Z, X, Y, RI4, X, Y, REGISTER[RI4], Z, X, Y, REGISTER[Z], *SR);
+            
         *PC = *PC + 1;
         *IR = MEM[*PC];
 
@@ -469,9 +446,6 @@ void SRL (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
     REGISTER[X] = (uint32_t)(result & 0X00000000FFFFFFFF);
     REGISTER[Z] = (uint32_t)(result >> 32);
 
-    //SR CONTROL
-    *SR = 0X00000000;
-
     //ZN CHECK -> R[Z] = 0
     if (result == 0) *SR = (*SR | 0x00000040);
 
@@ -486,7 +460,7 @@ void SRL (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
 
 }
 
-void DIVS (FILE *output, uint32_t *CR, uint32_t *PC, uint32_t *IPC, uint32_t *IR, uint32_t *MEM, uint32_t *SR, uint32_t *REGISTER) {
+void DIVS (FILE *output, uint32_t *CR, uint32_t *PC, uint32_t *IPC, uint32_t *IR, uint32_t *MEM, uint32_t *SR, uint32_t *REGISTER, uint32_t *zeroSTATE) {
     uint32_t Z = 0;
     //Z MASK:
     Z = (*IR & 0x03E00000) >> 21;
@@ -502,48 +476,43 @@ void DIVS (FILE *output, uint32_t *CR, uint32_t *PC, uint32_t *IPC, uint32_t *IR
     //RI4
     uint32_t RI4 = ( *IR & 0X0000001F );
 
-    REGISTER[RI4] = (uint32_t) ( (int32_t)REGISTER[X] % (int32_t)REGISTER[Y] );
-
-    REGISTER[Z] = (uint32_t) ( (int32_t)REGISTER[X] / (int32_t)REGISTER[Y] );
-
     //Valor de pc para impressao 
     uint32_t outputPC = (*PC * 4);
 
-    //SR CONTROL
-    *SR = 0X00000000;
+    //CHECK ZERO DIVISION
+    if ( (REGISTER[Y] == 0) ) {
+        *zeroSTATE = 1;
 
-    //ZN CHECK -> R[Z] = 0
-    if (REGISTER[Z] == 0) *SR = (*SR | 0x00000040);
+        *SR = (*SR | 0X00000020);
 
-    //ZD CHECK
-    if (REGISTER[Y] == 0 ) *SR = (*SR | 0X00000020);
-
-    //OV CHECK
-    if ( REGISTER[RI4] != 0 ) *SR = (*SR | 0x00000004);
-
-    //FPRINTF:
-    std::fprintf(output, "0X%08X:\tdivs r%i,r%i,r%i,r%i\tR%i=R%i%%R%i=0X%08X,R%i=R%i/R%i=0X%08X,SR=0X%08X\n", outputPC, RI4, Z, X, Y, RI4, X, Y, REGISTER[RI4], Z, X, Y, REGISTER[Z], *SR);
-
-    //SOFTWARE INTERRUPTION
-    uint32_t IE = (*SR & 0X00000002);
-    IE = IE >> 1;
-    if ( (IE == 1) && (REGISTER[Y] == 0) ) {
-        std::fprintf(output, "[SOFTWARE INTERRUPTION]\n");
-        *CR = 0;
+        std::fprintf(output, "0X%08X:\tdivs r%i,r%i,r%i,r%i\tR%i=R%i%%R%i=0X%08X,R%i=R%i/R%i=0X%08X,SR=0X%08X\n", outputPC, RI4, Z, X, Y, RI4, X, Y, REGISTER[RI4], Z, X, Y, REGISTER[Z], *SR);
         
-        *IPC = *PC;
-
-        //pc = 0x00000008
-        *PC = 0X00000002;
-
+        *PC = *PC + 1;
         *IR = MEM[*PC];
-        
+    
     } else {
-        
+        if ( (RI4 != 0) )
+        REGISTER[RI4] = (uint32_t) ( (int32_t)REGISTER[X] % (int32_t)REGISTER[Y] );
+
+        if ( (Z != 0) )
+        REGISTER[Z] = (uint32_t) ( (int32_t)REGISTER[X] / (int32_t)REGISTER[Y] );
+
+        //ZN CHECK -> R[Z] = 0
+        if (REGISTER[Z] == 0) *SR = (*SR | 0x00000040);
+
+        //OV CHECK
+        if ( REGISTER[RI4] != 0 ) *SR = (*SR | 0x00000004);
+
+        //FPRINTF:
+        std::fprintf(output, "0X%08X:\tdivs r%i,r%i,r%i,r%i\tR%i=R%i%%R%i=0X%08X,R%i=R%i/R%i=0X%08X,SR=0X%08X\n", outputPC, RI4, Z, X, Y, RI4, X, Y, REGISTER[RI4], Z, X, Y, REGISTER[Z], *SR);
+            
         *PC = *PC + 1;
         *IR = MEM[*PC];
 
     }
+
+
+
                 
 }
 
@@ -563,7 +532,7 @@ void SRA (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
     int32_t RI4 = ( *IR & 0X0000001F );
 
     //Adding RZ value first:
-    uint64_t result = REGISTER[Z];
+    int64_t result = REGISTER[Z];
     result = result << 32;
 
     //Adding RY value:
@@ -580,9 +549,6 @@ void SRA (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
 
     //Valor de impressao do PC
     uint32_t outputPC = (*PC * 4);
-
-    //SR CONTROL
-    *SR = 0X00000000;
 
     //ZN CHECK -> R[Z] = 0
     if (result == 0) *SR = (*SR | 0x00000040);
@@ -631,9 +597,6 @@ void CMP (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
 
     uint32_t outputPC = (*PC * 4);
 
-    //SR CONTROL
-    *SR = 0X00000000;
-
     //ZN CHECK 
     if (CMP == 0) *SR = (*SR | 0x00000040);
 
@@ -677,14 +640,11 @@ void AND (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
 
     REGISTER[Z] = ( indexX & indexY );
 
-    //SN CASE:
+    //For SN CASE:
     uint32_t RZ31 = (REGISTER[Z] >> 31);
 
     //impresao pc
     uint32_t outputPC = (*PC * 4);
-
-    //SR CONTROL
-    *SR = 0X00000000;
 
     //ZN CHECK -> R[Z] = 0
     if (REGISTER[Z] == 0) *SR = (*SR | 0x00000040);
@@ -715,20 +675,18 @@ void OR (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR, 
     Y = (*IR & 0x0000F800) >> 11;
 
     uint32_t valueX = REGISTER[X];
-    uint32_t valueY = REGISTER[Y];
     if ((X==30) || (X==29)) valueX = (REGISTER[X] * 4);
+
+    uint32_t valueY = REGISTER[Y];
     if ((Y==30) || (Y==29)) valueY = (REGISTER[Y] * 4);
 
     REGISTER[Z] = ( REGISTER[X] | REGISTER[Y] );
 
-    //SN CASE:
+    //For SN CASE:
     uint32_t RZ31 = (REGISTER[Z] >> 31);
 
     //impressao PC
     uint32_t outputPC = (*PC * 4);
-
-    //SR CONTROL
-    *SR = 0X00000000;
 
     //ZN CHECK -> R[Z] = 0
     if (REGISTER[Z] == 0) *SR = (*SR | 0x00000040);
@@ -754,16 +712,16 @@ void NOT (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
     //X MASK:
     X = (*IR & 0x001F0000) >> 16;
 
-    REGISTER[Z] = ( ~REGISTER[X] );
+    uint32_t valueX = REGISTER[X];
+    if ((X==30) || (X==29)) valueX = (REGISTER[X] * 4);
 
-    //SN CASE:
+    REGISTER[Z] = ( ~valueX );
+
+    //For SN CASE:
     uint32_t RZ31 = (REGISTER[Z] >> 31);
 
     //impressao PC
     uint32_t outputPC = (*PC * 4);
-
-    //SR CONTROL
-    *SR = 0X00000000;
 
     //ZN CHECK -> R[Z] = 0
     if (REGISTER[Z] == 0) *SR = (*SR | 0x00000040);
@@ -795,20 +753,18 @@ void XOR (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR,
     Y = (*IR & 0x0000F800) >> 11;
 
     uint32_t valueX = REGISTER[X];
-    uint32_t valueY = REGISTER[Y];
     if ((X==29) || (X==30)) valueX = (REGISTER[X] * 4);
+
+    uint32_t valueY = REGISTER[Y];
     if ((Y==29) || (Y==30)) valueY = (REGISTER[Y] * 4);
 
     REGISTER[Z] = ( valueX ^ valueY );
 
-    //SN CASE:
+    //For SN CASE:
     uint32_t RZ31 = (REGISTER[Z] >> 31);
 
     //impressao pc
     uint32_t outputPC = (*PC * 4);
-
-    //SR CONTROL
-    *SR = 0X00000000;
 
     //ZN CHECK -> R[Z] = 0
     if (REGISTER[Z] == 0) *SR = (*SR | 0x00000040);
@@ -850,6 +806,9 @@ void PUSH (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *RE
 
     uint32_t variables[5] = {V, W, X, Y, Z};
 
+    //SP output
+    uint32_t outputSP = (*SP * 4);
+
     int i = 0;
     uint32_t index = 0;
     for (i; i < 5; i++)
@@ -860,28 +819,25 @@ void PUSH (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *RE
         *SP = *SP - 1;
     }
 
-    //SP output
-    uint32_t outputSP = (*SP * 4);
-
     //pc output
     uint32_t outputPC =(*PC * 4);
 
     if (V == 0) std::fprintf(output, "0X%08X:\tpush -\tMEM[0X%08X]{}={}\n", outputPC, outputSP);
 
-    if ((V!=0) && (W == 0) ) 
+    else if ((V!=0) && (W == 0) ) 
         std::fprintf(output, "0X%08X:\tpush r%i\tMEM[0X%08X]{0X%08X}={R%i}\n", outputPC, V, outputSP, REGISTER[V], V);
     
-    if ((V!=0) && (W != 0) && (X == 0) )
+    else if ((V!=0) && (W != 0) && (X == 0) )
         std::fprintf(output, "0X%08X:\tpush r%i, r%i\tMEM[0X%08X]{0X%08X,0X%08X}={R%i, R%i}\n", outputPC, V, W, outputSP, REGISTER[V], REGISTER[W], V, W);
 
-    if ((V!=0) && (W != 0) && (X != 0) && (Y == 0) )
+    else if ((V!=0) && (W != 0) && (X != 0) && (Y == 0) )
         std::fprintf(output, "0X%08X:\tpush r%i, r%i,r%i\tMEM[0X%08X]{0X%08X,0X%08X,0X%08X}={R%i, R%i,R%i}\n", outputPC, V, W, X, outputSP, REGISTER[V], REGISTER[W], REGISTER[X], V, W, X);
     
-    if ((V!=0) && (W != 0) && (X != 0) && (Y != 0) && (Z == 0) ) 
+    else if ((V!=0) && (W != 0) && (X != 0) && (Y != 0) && (Z == 0) ) 
         std::fprintf(output, "0X%08X:\tpush r%i, r%i,r%i,r%i\tMEM[0X%08X]{0X%08X,0X%08X,0X%08X,0X%08X}={R%i, R%i,R%i,R%i}\n", outputPC, V, W, X, Y, outputSP, REGISTER[V], REGISTER[W], REGISTER[X], REGISTER[Y], V, W, X, Y);
 
 
-    if ((V!=0) && (W != 0) && (X != 0) && (Y != 0) && (Z != 0) ) 
+    else if ((V!=0) && (W != 0) && (X != 0) && (Y != 0) && (Z != 0) ) 
         std::fprintf(output, "0X%08X:\tpush r%i,r%i,r%i,r%i,r%i\tMEM[0X%08X]{0X%08X,0X%08X,0X%08X,0X%08X,0X%08X}={R%i,R%i,R%i,R%i,R%i}\n", outputPC, V, W, X, Y, Z, outputSP, REGISTER[V], REGISTER[W], REGISTER[X], REGISTER[Y], REGISTER[Z], V, W, X, Y, Z);
 
     
@@ -913,38 +869,37 @@ void POP (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *REG
 
     uint32_t variables[5] = {V, W, X, Y, Z};
 
+    //SP output
+    uint32_t outputSP = (*SP * 4);
+
     int i = 0;
     uint32_t index = 0;
     for (i; i < 5; i++)
     {
         if (variables[i] == 0 ) break;
         index = variables[i];
-        REGISTER[index] = MEM[*SP];
         *SP = *SP + 1;
+        REGISTER[index] = MEM[*SP];
     }
-
-    //SP output
-    uint32_t outputSP = (*SP * 4);
 
     uint32_t outputPC = (*PC * 4);
 
 
     if (V == 0) std::fprintf(output, "0X%08X:\tpop -\t{}=MEM[0X%08X]{}\n", outputPC, outputSP);
 
-    if ((V!=0) && (W == 0) ) 
+    else if ((V!=0) && (W == 0) ) 
         std::fprintf(output, "0X%08X:\tpop r%i\t{R%i}=MEM[0X%08X]{0X%08X}\n", outputPC, V, V, outputSP, REGISTER[V]);
     
-    if ((V!=0) && (W != 0) && (X == 0) )
+    else if ((V!=0) && (W != 0) && (X == 0) )
         std::fprintf(output, "0X%08X:\tpop r%i,r%i\t{R%i,R%i}=MEM[0X%08X]{0X%08X,0X%08X}\n", outputPC, V, W, V, W, outputSP, REGISTER[V], REGISTER[W]);
 
-    if ((V!=0) && (W != 0) && (X != 0) && (Y == 0) )
+    else if ((V!=0) && (W != 0) && (X != 0) && (Y == 0) )
         std::fprintf(output, "0X%08X:\tpop r%i,r%i,r%i\t{R%i,R%i,R%i}=MEM[0X%08X]{0X%08X,0X%08X,0X%08X}\n", outputPC, V, W, X, V, W, X, outputSP, REGISTER[V], REGISTER[W], REGISTER[X]);
     
-    if ((V!=0) && (W != 0) && (X != 0) && (Y != 0) && (Z == 0) ) 
+    else if ((V!=0) && (W != 0) && (X != 0) && (Y != 0) && (Z == 0) ) 
         std::fprintf(output, "0X%08X:\tpop r%i,r%i,r%i,r%i\t{R%i,R%i,R%i,R%i}=MEM[0X%08X]{0X%08X,0X%08X,0X%08X,0X%08X}\n", outputPC, V, W, X, Y, V, W, X, Y, outputSP, REGISTER[V], REGISTER[W], REGISTER[X], REGISTER[Y]);
 
-
-    if ((V!=0) && (W != 0) && (X != 0) && (Y != 0) && (Z != 0) ) 
+    else if ((V!=0) && (W != 0) && (X != 0) && (Y != 0) && (Z != 0) ) 
         std::fprintf(output, "0X%08X:\tpop r%i,r%i,r%i,r%i,r%i\t{R%i,R%i,R%i,R%i,R%i}=MEM[0X%08X]{0X%08X,0X%08X,0X%08X,0X%08X,0X%08X}\n", outputPC, V, W, X, Y, Z, V, W, X, Y, Z, outputSP, REGISTER[V], REGISTER[W], REGISTER[X], REGISTER[Y], REGISTER[Z]);
         
         
@@ -976,22 +931,19 @@ void ADDI (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR
 
     REGISTER[Z] = valueREGX + I15;
 
-    //SN CASE:
+    //For SN CASE:
     uint32_t RZ31 = (REGISTER[Z] >> 31);
 
-    //OV CASE:
+    //For OV CASE:
     uint32_t RX31 = (REGISTER[X] >> 31);
 
-    //CY CASE:
+    //For CY CASE:
     uint64_t result = ( valueREGX + I15 );
     result = ( result & 0X0000000100000000 );
     result = result >> 32;
 
     //Valor do PC para impressao:
     uint32_t outputPC = (*PC * 4);
-
-    //SR CONTROL
-    *SR = 0X00000000;
 
     //ZN CHECK 
     if (REGISTER[Z] == 0) *SR = (*SR | 0x00000040);
@@ -1031,22 +983,19 @@ void SUBI (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR
 
     REGISTER[Z] = REGISTER[X] - I15;
 
-    //SN CASE:
+    //For SN CASE:
     uint32_t RZ31 = (REGISTER[Z] >> 31);
 
-    //OV CASE:
+    //For OV CASE:
     uint32_t RX31 = (REGISTER[X] >> 31);
 
-    //CY CASE:
+    //For CY CASE:
     uint64_t result = ((uint64_t)REGISTER[X] - (uint64_t)I15);
     result = ( result & 0X0000000100000000 );
     result = result >> 32;
 
     //Valor de impressao do PC
     uint32_t outputPC = (*PC * 4);
-
-    //SR CONTROL
-    *SR = 0X00000000;
 
     //ZN CHECK -> R[Z] = 0
     if (REGISTER[Z] == 0) *SR = (*SR | 0x00000040);
@@ -1078,7 +1027,7 @@ void MULI (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR
     //X MASK:
     X = (*IR & 0x001F0000) >> 16;
 
-    uint32_t I15 = 0;
+    int32_t I15 = 0;
     //I MASK:
     I15 = (*IR & 0x0000FFFF);
     uint32_t checkI15 = I15 >> 15;
@@ -1093,9 +1042,6 @@ void MULI (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR
 
     //Valor de impressao PC
     uint32_t outputPC = (*PC * 4);
-
-    //SR CONTROL
-    *SR = 0X00000000;
 
     //ZN CHECK -> R[Z] = 0
     if (REGISTER[Z] == 0) *SR = (*SR | 0x00000040);
@@ -1113,7 +1059,7 @@ void MULI (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR
 
 }
 
-void DIVI (FILE *output, uint32_t *CR, uint32_t *IPC, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR, uint32_t *REGISTER) {
+void DIVI (FILE *output, uint32_t *CR, uint32_t *IPC, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR, uint32_t *REGISTER, uint32_t *zeroSTATE) {
     uint32_t Z = 0;
     //Z MASK:
     Z = (*IR & 0x03E00000) >> 21;
@@ -1127,51 +1073,39 @@ void DIVI (FILE *output, uint32_t *CR, uint32_t *IPC, uint32_t *PC, uint32_t *IR
     I15 = (*IR & 0x0000FFFF);
     uint32_t checkI15 = I15 >> 15;
     if (checkI15 == 1) I15 = ( I15 | 0xFFFF0000);
-
-
-    if (I15 != 0) REGISTER[Z] = (uint32_t)((int32_t)REGISTER[X] / (int32_t)I15);
 
     //IMPRESSAO pc
     uint32_t outputPC = (*PC * 4);
 
-    //SR CONTROL
-    *SR = 0X00000000;
+    if (I15 == 0) {
+        *zeroSTATE = 1;
 
-    //ZN CHECK -> R[Z] = 0
-    if (REGISTER[Z] == 0) *SR = (*SR | 0x00000040);
+        *SR = (*SR | 0x00000020);
 
-    //ZD CHECK 
-    if (I15 == 0) *SR = (*SR | 0x00000020);
+        std::fprintf(output, "0X%08X:\tdivi r%i,r%i,%i\tR%i=R%i/0X%08X=0X%08X,SR=0X%08X\n", outputPC, Z, X, I15, Z, X, I15, REGISTER[Z], *SR);
 
-
-    //FPRINTF
-    std::fprintf(output, "0X%08X:\tdivi r%i,r%i,%i\tR%i=R%i/0X%08X=0X%08X,SR=0X%08X\n", outputPC, Z, X, I15, Z, X, I15, REGISTER[Z], *SR);
-
-    //SOFTWARE INTERRUPTION
-    uint32_t IE = (*SR & 0X00000002);
-    IE = IE >> 1;
-    if ( (IE == 1) && (I15 == 0) ) {
-        std::fprintf(output, "[SOFTWARE INTERRUPTION]\n");
-        *CR = 0;
-        
-        *IPC = *PC;
-
-        //pc = 0x00000008
-        *PC = 0X00000002;
-
+        *PC = *PC + 1;
         *IR = MEM[*PC];
-        
+
     } else {
-        
+        if (Z != 0) REGISTER[Z] = (uint32_t)((int32_t)REGISTER[X] / (int32_t)I15);
+
+        //ZN CHECK -> R[Z] = 0
+        if ((REGISTER[Z] == 0) && (Z != 0)) *SR = (*SR | 0x00000040);
+
+        //FPRINTF
+        std::fprintf(output, "0X%08X:\tdivi r%i,r%i,%i\tR%i=R%i/0X%08X=0X%08X,SR=0X%08X\n", outputPC, Z, X, I15, Z, X, I15, REGISTER[Z], *SR);
+            
         *PC = *PC + 1;
         *IR = MEM[*PC];
 
     }
+
     
 
 }
 
-void MODI (FILE *output, uint32_t *CR, uint32_t *IPC, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR, uint32_t *REGISTER) {
+void MODI (FILE *output, uint32_t *CR, uint32_t *IPC, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR, uint32_t *REGISTER, uint32_t *zeroSTATE) {
     uint32_t Z = 0;
     //Z MASK:
     Z = (*IR & 0x03E00000) >> 21;
@@ -1186,40 +1120,27 @@ void MODI (FILE *output, uint32_t *CR, uint32_t *IPC, uint32_t *PC, uint32_t *IR
     uint32_t checkI15 = I15 >> 15;
     if (checkI15 == 1) I15 = ( I15 | 0xFFFF0000);
 
-    if (I15 != 0)
-    REGISTER[Z] = (uint32_t)((int32_t)REGISTER[X] % (int32_t)I15);
-
     //impressao pc
     uint32_t outputPC = (*PC * 4);
 
-    //SR CONTROL
-    *SR = 0X00000000;
+    if (I15 == 0) {
+        *zeroSTATE = 1;
 
-    //ZN CHECK -> R[Z] = 0
-    if (REGISTER[Z] == 0) *SR = (*SR | 0x00000040);
+        *SR = (*SR | 0x00000020);
 
-    //ZD CHECK 
-    if (I15 == 0) *SR = (*SR | 0x00000020);
+        std::fprintf(output, "0X%08X:\tmodi r%i,r%i,%i\tR%i=R%i%%0X%08X=0X%08X,SR=0X%08X\n", outputPC, Z, X, I15, Z, X, I15, REGISTER[Z], *SR);
 
-
-    //FRPINTF
-    std::fprintf(output, "0X%08X:\tmodi r%i,r%i,%i\tR%i=R%i%%0X%08X=0X%08X,SR=0X%08X\n", outputPC, Z, X, I15, Z, X, I15, REGISTER[Z], *SR);
-
-    //SOFTWARE INTERRUPTION
-    uint32_t IE = (*SR & 0X00000002);
-    IE = IE >> 1;
-    if ( (IE == 1) && (I15 == 0) ) {
-        std::fprintf(output, "[SOFTWARE INTERRUPTION]\n");
-        *CR = 0;
-        
-        *IPC = *PC;
-
-        //pc = 0x00000008
-        *PC = 0X00000002;
-
+        *PC = *PC + 1;
         *IR = MEM[*PC];
-        
+
     } else {
+        if (Z != 0 ) REGISTER[Z] = (uint32_t)((int32_t)REGISTER[X] % (int32_t)I15);
+
+        //ZN CHECK -> R[Z] = 0
+        if (REGISTER[Z] == 0) *SR = (*SR | 0x00000040);
+
+        //FRPINTF
+        std::fprintf(output, "0X%08X:\tmodi r%i,r%i,%i\tR%i=R%i%%0X%08X=0X%08X,SR=0X%08X\n", outputPC, Z, X, I15, Z, X, I15, REGISTER[Z], *SR);
         
         *PC = *PC + 1;
         *IR = MEM[*PC];
@@ -1234,28 +1155,25 @@ void CMPI (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR
     //X MASK:
     X = (*IR & 0x001F0000) >> 16;
 
-    uint32_t I15 = 0;
+    int32_t I15 = 0;
     //I MASK:
     I15 = (*IR & 0x0000FFFF);
-    uint32_t checkI15 = I15 >> 15;
+    int32_t checkI15 = I15 >> 15;
     if (checkI15 == 1) I15 = ( I15 | 0xFFFF0000);
 
-    uint32_t CMPI = (REGISTER[X] - I15);
+    int32_t CMPI = (REGISTER[X] - I15);
 
-    //SN CASE:
+    //For SN CASE:
     uint32_t CMPI31 = CMPI >> 31;
 
-    //OV CASE:
+    //For OV CASE:
     uint32_t RX31 = REGISTER[X] >> 31;
 
-    //CY CASE:
-    uint64_t CMP32 = (uint64_t)REGISTER[X] - (uint64_t)I15;
+    //For CY CASE:
+    int64_t CMP32 = (uint64_t)REGISTER[X] - (uint64_t)I15;
     CMP32 = CMP32 >> 32;
 
     uint32_t outputPC = (*PC * 4);
-
-    //SR CONTROL
-    *SR = 0X00000000;
 
     //ZN CHECK -> R[Z] = 0
     if (CMPI == 0) *SR = (*SR | 0x00000040);
@@ -1278,7 +1196,15 @@ void CMPI (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR
             
 }
 
-void L8 (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *REGISTER) {
+//Include the reset of killer4 -> killer4 = 0.
+void L8 
+(
+    FILE *output, 
+    uint32_t *PC, 
+    uint32_t *IR, 
+    uint32_t *MEM, 
+    uint32_t *REGISTER
+) {
     uint32_t Z = 0;
     //Z MASK:
     Z = (*IR & 0x03E00000) >> 21;
@@ -1294,16 +1220,62 @@ void L8 (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *REGI
     if (checkI15 == 1) I15 = ( I15 | 0xFFFF0000);
 
     uint32_t L8 = (int32_t)(REGISTER[X] + I15);
-    
-    REGISTER[Z] = MEM[L8];
+
+    //Address Logic
+        uint32_t address = (L8 / 4); 
+        uint32_t _4Byte = MEM[address];
+
+        uint32_t xbyte = L8 % address;
+
+        switch (xbyte)
+        {
+            case 0X00:
+                    {
+                    _4Byte = (_4Byte & 0XFF000000);
+                    _4Byte = _4Byte >> 24;
+
+                    REGISTER[Z] = _4Byte;   
+                    }
+                break;
+
+            case 0X01:
+                    {
+                    _4Byte = (_4Byte & 0X00FF0000);
+                    _4Byte = _4Byte >> 16;
+
+                    REGISTER[Z] = _4Byte;   
+                    }
+                break;
+
+            case 0X02:
+                    {
+                    _4Byte = (_4Byte & 0X0000FF00);
+                    _4Byte = _4Byte >> 8;
+
+                    REGISTER[Z] = _4Byte;   
+                    }
+                break;
+
+            case 0X03:
+                    {
+                    _4Byte = (_4Byte & 0X000000FF);
+
+                    REGISTER[Z] = _4Byte;   
+                    }
+                break;
+
+            default:
+                break;
+        }
+    //Address Logic
 
     //outputPC
     uint32_t outputPC = (*PC * 4);
 
     if (I15 > 0)
-        std::fprintf(output, "0X%08X:\tl8 r%i,[r%i+%i]\tR%i=MEM[0X%08X]=0X%02X\n", outputPC, Z, X, I15, Z, L8, REGISTER[Z]);
+        std::fprintf(output, "0X%08X:\tl8 r%i,[r%i+%i]\tR%i=MEM[0X%08X]=0X%02X\n", outputPC, Z, X, I15, Z, L8, _4Byte);
     else 
-        std::fprintf(output, "0X%08X:\tl8 r%i,[r%i-%i]\tR%i=MEM[0X%08X]=0X%02X\n", outputPC, Z, X, I15, Z, L8, REGISTER[Z]);
+        std::fprintf(output, "0X%08X:\tl8 r%i,[r%i-%i]\tR%i=MEM[0X%08X]=0X%02X\n", outputPC, Z, X, I15, Z, L8, _4Byte);
     
     *PC = *PC + 1;
     *IR = MEM[*PC];
@@ -1337,7 +1309,7 @@ void L16 (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *REG
     *IR = MEM[*PC];
 }
 
-void L32 (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *REGISTER) {
+void L32 (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *REGISTER, uint32_t *FPU) {
     uint32_t Z = 0;
     //Z MASK:
     Z = (*IR & 0x03E00000) >> 21;
@@ -1352,12 +1324,18 @@ void L32 (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *REG
     uint32_t checkI15 = I15 >> 15;
     if (checkI15 == 1) I15 = ( I15 | 0xFFFF0000);
 
+    uint32_t outputPC =(*PC *4);
+
     uint32_t L32 = REGISTER[X] + I15;
     L32 = L32 << 2;
-    
-    REGISTER[Z] = MEM[L32];
 
-    uint32_t outputPC =(*PC *4);
+    // ------------- FPU CHECK -------------
+    if (L32 == 0x8080888C) REGISTER[Z] = *FPU;
+    // ------------- FPU CHECK -------------
+    else {
+        uint32_t address = (L32 / 4);
+        REGISTER[Z] = MEM[address];
+    }
 
     std::fprintf(output, "0X%08X:\tl32 r%i,[r%i+-%i]\tR%i=MEM[0X%08X]=0X%08X\n", outputPC, Z, X, I15, Z, L32, REGISTER[Z]);
 
@@ -1365,7 +1343,14 @@ void L32 (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *REG
     *IR = MEM[*PC];
 }
 
-void S8 (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *REGISTER) {
+void S8 (
+    FILE *output, 
+    uint32_t *PC, 
+    uint32_t *IR, 
+    uint32_t *MEM, 
+    uint32_t *REGISTER, 
+    vector<uint32_t> TERMINAL
+) {
     uint32_t Z = 0;
     //Z MASK:
     Z = (*IR & 0x03E00000) >> 21;
@@ -1380,15 +1365,98 @@ void S8 (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *REGI
     uint32_t checkI15 = I15 >> 15;
     if (checkI15 == 1) I15 = ( I15 | 0xFFFF0000);
 
-    uint32_t S8 = REGISTER[X] + I15;
-    
-    MEM[S8] = REGISTER[Z];
-
-    // if (S8 == )
-
     uint32_t outputPC = (*PC * 4);
 
-    std::fprintf(output, "0X%08X:\ts8 [r%i+-%i],r%i\tMEM[0X%08X]=R%i=0X%02X\n", outputPC, X, I15, Z, S8, Z, REGISTER[Z]);
+    uint32_t S8 = REGISTER[X] + I15;
+
+    uint32_t byte = 0;
+    if (S8 == 0x8888888B) {
+
+    // ------------- TERMINAL -------------
+        byte = (REGISTER[Z] & 0X000000FF);
+        TERMINAL.push_back(byte);
+    // ------------- TERMINAL ------------
+
+    }else {
+        //Addres Logic
+            uint32_t address = (S8/4);
+            uint32_t _4Byte = MEM[address];
+
+            uint32_t xindex = S8 % address;
+
+            switch (xindex)
+        {
+            case 0X00:
+                    {
+                        byte = REGISTER[Z];
+                        byte = (byte & 0X000000FF);
+                        byte = byte << 24;
+
+                        //clear byte
+                            _4Byte = (_4Byte & 0X00FFFFFF);
+                        //setting byte
+                            _4Byte = (_4Byte | byte);
+                        //saving changes
+                            MEM[address] = _4Byte;
+
+                    }
+                break;
+            
+            case 0X01:
+                    {
+                        byte = REGISTER[Z];
+                        byte = (byte & 0X000000FF);
+                        byte = byte << 16;
+
+                        //clear byte
+                            _4Byte = (_4Byte & 0XFF00FFFF);
+                        //setting byte
+                            _4Byte = (_4Byte | byte);
+                        //saving changes
+                            MEM[address] = _4Byte;
+
+                    }
+                break;
+
+            case 0X02:
+                    {
+                        byte = REGISTER[Z];
+                        byte = (byte & 0X000000FF);
+                        byte = byte << 8;
+
+                        //clear byte
+                            _4Byte = (_4Byte & 0XFFFF00FF);
+                        //setting byte
+                            _4Byte = (_4Byte | byte);
+                        //saving changes
+                            MEM[address] = _4Byte;
+
+                    }
+                break;
+
+            case 0X03:
+                    {
+                        byte = REGISTER[Z];
+                        byte = (byte & 0X000000FF);
+
+                        //clear byte
+                            _4Byte = (_4Byte & 0XFFFFFF00);
+                        //setting byte
+                            _4Byte = (_4Byte | byte);
+                        //saving changes
+                            MEM[address] = _4Byte;
+
+                    }
+                break;
+
+            default:
+                break;
+        }
+        //Addres Logic
+
+    }
+
+    std::fprintf(output, "0X%08X:\ts8 [r%i+-%i],r%i\tMEM[0X%08X]=R%i=0X%02X\n", outputPC, X, I15, Z, S8, Z, byte);
 
     *PC = *PC + 1;
     *IR = MEM[*PC];
@@ -1422,7 +1490,17 @@ void S16 (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *REG
     *IR = MEM[*PC];
 }
 
-void S32 (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *REGISTER) {
+void S32 (
+    FILE *output, 
+    uint32_t *PC, 
+    uint32_t *IR, 
+    uint32_t *MEM, 
+    uint32_t *REGISTER, 
+    uint32_t *WATCHDOG,
+    uint32_t *XFPU,
+    uint32_t *YFPU,
+    uint32_t *FPU
+) {
     uint32_t Z = 0;
     //Z MASK:
     Z = (*IR & 0x03E00000) >> 21;
@@ -1439,10 +1517,25 @@ void S32 (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *REG
 
     uint32_t S32 = REGISTER[X] + I15;
     S32 = S32 << 2;
-    
-    MEM[S32] = REGISTER[Z];
 
     uint32_t outputPC =(*PC *4);
+
+    uint32_t address = (S32 / 4); 
+
+    // ------------- WATCHDOG CHECK -------------
+    if (S32 == 0X80808080) *WATCHDOG = REGISTER[Z];
+
+    // ------------- XFPU CHECK -------------
+    else if (S32 == 0x80808880) *XFPU = REGISTER[Z]; 
+
+    // ------------- YFPU CHECK -------------
+    else if (S32 == 0x80808884) *YFPU = REGISTER[Z];
+
+    // ------------- FPU CHECK -------------
+    else if (S32 == 0x8080888C) *FPU = REGISTER[Z];
+
+    //------------- DEFAULT -------------
+    else MEM[address] = REGISTER[Z];
 
     std::fprintf(output, "0X%08X:\ts32 [r%i+-%i],r%i\tMEM[0X%08X]=R%i=0X%08X\n", outputPC, X, I15, Z, S32, Z, REGISTER[Z]);
 
@@ -1490,7 +1583,7 @@ void CALLF (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *R
 void CALLS (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t * SP) {
 
     // uint32_t I25 = 0;
-    uint32_t I25 = 0;
+    int32_t I25 = 0;
     //I MASK:
     I25 = (*IR & 0x03FFFFFF);
     uint32_t checkI25 = I25 >> 25;
@@ -1527,7 +1620,7 @@ void RET (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t * SP
     
     *SP = *SP + 1;
 
-    uint32_t outputSP = (*SP << 2);
+    uint32_t outputSP = (*SP * 4);
 
     uint32_t initialPC = (*PC * 4);
 
@@ -1541,19 +1634,23 @@ void RET (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t * SP
     *IR = MEM[*PC];
 }
 
-void BAE (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
-    uint32_t I25 = 0;
+void BAE (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR) {
+    int32_t I25 = 0;
     //I MASK:
     I25 = (*IR & 0x03FFFFFF);
     uint32_t checkI25 = I25 >> 25;
     if (checkI25 == 1) I25 = ( I25 | 0xFC000000);
 
-    uint32_t BAE = I25;
+    int32_t BAE = I25;
     // BAE = BAE << 2;
 
     uint32_t initialPC = (*PC * 4);
-    //test
-    *PC = *PC + 1+ BAE; 
+
+    //AE CONDITION CHECK
+        uint32_t AE = (*SR & 0X00000001);
+        if (AE == 0) *PC = *PC + 1 + BAE;
+        else *PC = *PC + 1; 
+    //AE CONDITION CHECK
 
     uint32_t outputPC = (*PC * 4);
 
@@ -1562,18 +1659,25 @@ void BAE (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
     *IR = MEM[*PC];
 }
 
-void BAT (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
-    uint32_t I25 = 0;
+void BAT (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR) {
+    int32_t I25 = 0;
     //I MASK:
     I25 = (*IR & 0x03FFFFFF);
     uint32_t checkI25 = I25 >> 25;
     if (checkI25 == 1) I25 = ( I25 | 0xFC000000);
 
-    uint32_t BAT = I25;
+    int32_t BAT = I25;
     // BAT = BAT << 2;
 
     uint32_t initialPC = (*PC * 4);
-    *PC = *PC + BAT; 
+
+    //AT CONDITION CHECK
+        uint32_t znAT = (*SR & 0X00000040);
+        znAT = znAT >> 6;
+        uint32_t cyAT = (*SR & 0X00000001);
+        if ( (znAT == 0) && (cyAT == 0) ) *PC = *PC + 1 + BAT; 
+        else *PC = *PC + 1; 
+    //AT CONDITION CHECK
 
     uint32_t outputPC = (*PC * 4);
 
@@ -1582,19 +1686,26 @@ void BAT (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
     *IR = MEM[*PC];
 }
 
-void BBE (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
-    uint32_t I25 = 0;
+void BBE (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR) {
+    int32_t I25 = 0;
     //I MASK:
     I25 = (*IR & 0x03FFFFFF);
     uint32_t checkI25 = I25 >> 25;
     if (checkI25 == 1) I25 = ( I25 | 0xFC000000);
 
-    uint32_t BBE = I25;
+    int32_t BBE = I25;
     // BBE = BBE << 2;
 
     uint32_t initialPC = (*PC * 4);
-    *PC = *PC + 1 + BBE; 
 
+    //BE CONDITION CHECK
+        uint32_t znBE = (*SR & 0x00000040);
+        znBE = znBE >> 6;
+        uint32_t cyBE = (*SR & 0x00000001);
+        if( (znBE == 1) || (cyBE == 1) ) *PC = *PC + 1 + BBE; 
+        else *PC = *PC + 1 ; 
+    //BE CONDITION CHECK
+    
     uint32_t outputPC = (*PC * 4);
 
     std::fprintf(output, "0X%08X:\tbbe %i\tPC=0X%08X\n", initialPC, I25, outputPC);
@@ -1602,18 +1713,23 @@ void BBE (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
     *IR = MEM[*PC];
 }
 
-void BBT (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
-    uint32_t I25 = 0;
+void BBT (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR) {
+    int32_t I25 = 0;
     //I MASK:
     I25 = (*IR & 0x03FFFFFF);
     uint32_t checkI25 = I25 >> 25;
     if (checkI25 == 1) I25 = ( I25 | 0xFC000000);
 
-    uint32_t BBT = I25;
+    int32_t BBT = I25;
     // BBT = BBT << 2;
 
     uint32_t initialPC = (*PC * 4);
-    *PC = *PC + BBT; 
+
+    //BT CONDITION CHECK
+        uint32_t cyBT = (*SR & 0X00000001);
+        if (cyBT == 1) *PC = *PC + 1 + BBT; 
+        else *PC = *PC + 1; 
+    //BT CONDITION CHECK
 
     uint32_t outputPC = (*PC * 4);
 
@@ -1622,19 +1738,25 @@ void BBT (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
     *IR = MEM[*PC];
 }
 
-void BEQ (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
-    uint32_t I25 = 0;
+void BEQ (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR) {
+    int32_t I25 = 0;
     //I MASK:
     I25 = (*IR & 0x03FFFFFF);
     uint32_t checkI25 = I25 >> 25;
     if (checkI25 == 1) I25 = ( I25 | 0xFC000000);
 
-    uint32_t BEQ = I25;
+    int32_t BEQ = I25;
     // BEQ = BEQ << 2;
 
     uint32_t initialPC = (*PC * 4);
-    if (initialPC == 0X00000270) *PC = *PC + BEQ; 
-    else *PC = *PC + BEQ + 1; 
+    
+    // ------------- Flow Control -------------
+        uint32_t checkZN = (*SR & 0X00000040);
+        checkZN = checkZN >> 6;
+        //Control
+        if (checkZN) *PC = *PC + 1 + BEQ; 
+        else *PC = *PC + 1;
+    // ------------- Flow Control -------------
 
     uint32_t outputPC = (*PC * 4);
 
@@ -1643,19 +1765,26 @@ void BEQ (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
     *IR = MEM[*PC];
 }
 
-void BGE (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
-    uint32_t I25 = 0;
+void BGE (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR) {
+    int32_t I25 = 0;
     //I MASK:
     I25 = (*IR & 0x03FFFFFF);
     uint32_t checkI25 = I25 >> 25;
     if (checkI25 == 1) I25 = ( I25 | 0xFC000000);
 
-    uint32_t BGE = (int32_t)I25;
+    int32_t BGE = (int32_t)I25;
     // BGE = BGE << 2;
 
     uint32_t initialPC = (*PC * 4);
-    if (initialPC == 0X00000264) *PC = *PC + BGE; 
-    else *PC = *PC + BGE + 1; 
+
+    //GE CONDITION CHECK
+        uint32_t snGE = (*SR & 0X00000010);
+        snGE = snGE >> 4;
+        uint32_t ovGE = (*SR & 0X00000008);
+        ovGE = ovGE >> 3;
+        if ( snGE == ovGE ) *PC = *PC + BGE + 1; 
+        else *PC = *PC + 1; 
+    //GE CONDITION CHECK
 
     uint32_t outputPC = (*PC * 4);
 
@@ -1664,24 +1793,28 @@ void BGE (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
     *IR = MEM[*PC];
 }
 
-void BGT (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
-    uint32_t I25 = 0;
+void BGT (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR) {
+    int32_t I25 = 0;
     //I MASK:
     I25 = (*IR & 0x03FFFFFF);
     uint32_t checkI25 = I25 >> 25;
     if (checkI25 == 1) I25 = ( I25 | 0xFC000000);
 
-    uint32_t BGT = (int32_t)I25;
+    int32_t BGT = (int32_t)I25;
     // BGT = BGT << 2;
 
     uint32_t initialPC = (*PC * 4);
 
-    //teste (temporario para arrumar problema poxim1)
-    uint32_t check = (*PC * 4);
-
-    if (check == 584) *PC = *PC + BGT;
-    else if (check == 0x00000258) *PC = *PC + BGT;
-    else  *PC = *PC + BGT + 1;  // depois arrumo melhor
+    //GT CONDITION CHECK
+        uint32_t znGT = (*SR & 0X00000040);
+        znGT = znGT >> 6;
+        uint32_t snGT = (*SR & 0X00000010);
+        snGT = snGT >> 4;
+        uint32_t ovGT = (*SR & 0X00000008);
+        ovGT = ovGT >> 3;
+        if ( (znGT == 0) && (snGT == ovGT)) *PC = *PC + 1 + BGT;
+        else  *PC = *PC + 1;  
+    //GT CONDITION CHECK
 
     uint32_t outputPC = (*PC * 4);
 
@@ -1690,21 +1823,24 @@ void BGT (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
     *IR = MEM[*PC];
 }
 
-void BIV (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
-    uint32_t I25 = 0;
+void BIV (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR) {
+    int32_t I25 = 0;
     //I MASK:
     I25 = (*IR & 0x03FFFFFF);
     uint32_t checkI25 = I25 >> 25;
     if (checkI25 == 1) I25 = ( I25 | 0xFC000000);
 
-    uint32_t BIV = I25;
+    int32_t BIV = I25;
     // BIV = BIV << 2;
 
     uint32_t initialPC = (*PC * 4);
 
-    if (initialPC == 0X00000280) *PC = *PC + BIV; 
-    else *PC = *PC + BIV + 1; 
-
+    //IV CONDITION CHECK
+        uint32_t ivIV = (*SR & 0X00000004);
+        ivIV = ivIV >> 2;
+        if (ivIV) *PC = *PC + BIV + 1; 
+        else *PC = *PC + 1; 
+    //IV CONDITION CHECK
     uint32_t outputPC = (*PC * 4);
 
     std::fprintf(output, "0X%08X:\tbiv %i\tPC=0X%08X\n", initialPC, I25, outputPC);
@@ -1712,23 +1848,28 @@ void BIV (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
     *IR = MEM[*PC];
 }
 
-void BLE (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
-    uint32_t I25 = 0;
+void BLE (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR) {
+    int32_t I25 = 0;
     //I MASK:
     I25 = (*IR & 0x03FFFFFF);
     uint32_t checkI25 = I25 >> 25;
     if (checkI25 == 1) I25 = ( I25 | 0xFC000000);
 
-    uint32_t BLE = (int32_t)I25;
+    int32_t BLE = (int32_t)I25;
     // BLE = BLE << 2;
 
     uint32_t initialPC = (*PC * 4);
 
-
-    if (initialPC == 0x0000024C) *PC = *PC + BLE + 1;
-    else if (initialPC == 0x000002) *PC = *PC + BLE + 1;
-    else if (initialPC == 0x0000025C) *PC = *PC + BLE + 1;
-    else *PC = *PC + BLE; 
+    //LE CONDITION CHECK
+        uint32_t znLE = (*SR & 0X00000040);
+        znLE = znLE >> 6;
+        uint32_t snLE = (*SR & 0X00000040);
+        snLE = snLE >> 4;
+        uint32_t ovLE = (*SR & 0X00000040);
+        ovLE = ovLE >> 3;
+        if ( (znLE == 1) || (snLE != ovLE) ) *PC = *PC + BLE + 1;
+        else *PC = *PC + 1;
+    //LE CONDITION CHECK
 
     uint32_t outputPC = (*PC * 4);
 
@@ -1737,19 +1878,26 @@ void BLE (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
     *IR = MEM[*PC];
 }
 
-void BLT (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
-    uint32_t I25 = 0;
+void BLT (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR) {
+    int32_t I25 = 0;
     //I MASK:
     I25 = (*IR & 0x03FFFFFF);
     uint32_t checkI25 = I25 >> 25;
     if (checkI25 == 1) I25 = ( I25 | 0xFC000000);
 
-    uint32_t BLT = (int32_t)I25;
+    int32_t BLT = (int32_t)I25;
     // BLT = BLT << 2;
 
     uint32_t initialPC = (*PC * 4);
-    if (initialPC == 0X00000268) *PC = *PC + BLT + 1; 
-    else *PC = *PC + BLT; 
+
+    //LT CONDITION CHECK
+        uint32_t snLT = (*SR & 0X00000010);
+        snLT = snLT >> 4;
+        uint32_t ovLT = (*SR & 0X00000010);
+        ovLT = ovLT >> 3;
+        if (snLT != ovLT ) *PC = *PC + BLT + 1; 
+        else *PC = *PC + 1; 
+    //LT CONDITION CHECK
 
     uint32_t outputPC = (*PC * 4);
 
@@ -1758,19 +1906,24 @@ void BLT (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
     *IR = MEM[*PC];
 }
 
-void BNE (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
-    uint32_t I25 = 0;
+void BNE (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR) {
+    int32_t I25 = 0;
     //I MASK:
     I25 = (*IR & 0x03FFFFFF);
     uint32_t checkI25 = I25 >> 25;
     if (checkI25 == 1) I25 = ( I25 | 0xFC000000);
 
-    uint32_t BNE = I25;
+    int32_t BNE = I25;
     // BNE = BNE << 2;
 
     uint32_t initialPC = (*PC * 4);
-    if (initialPC == 0X00000274) *PC = *PC + BNE + 1; 
-    else *PC = *PC + BNE; 
+
+    //NE CONDITION CHECK
+        uint32_t znNE = (*SR & 0X00000040);
+        znNE = znNE >> 6;
+        if (znNE == 0) *PC = *PC + BNE + 1; 
+        else *PC = *PC + 1; 
+    //NE CONDITION CHECK
 
     uint32_t outputPC = (*PC * 4);
 
@@ -1779,20 +1932,24 @@ void BNE (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
     *IR = MEM[*PC];
 }
 
-void BNI (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
-    uint32_t I25 = 0;
+void BNI (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR) {
+    int32_t I25 = 0;
     //I MASK:
     I25 = (*IR & 0x03FFFFFF);
     uint32_t checkI25 = I25 >> 25;
     if (checkI25 == 1) I25 = ( I25 | 0xFC000000);
 
-    uint32_t BNI = I25;
+    int32_t BNI = I25;
     // BNI = BNI << 2;
 
     uint32_t initialPC = (*PC * 4);
 
-    if (initialPC == 0X00000284) *PC = *PC + BNI + 1; 
-    else *PC = *PC + BNI; 
+    //NI CONTIDION CHECK
+        uint32_t ivNI = (*SR & 0X00000004);
+        ivNI = ivNI >> 2;
+        if (ivNI == 0) *PC = *PC + BNI + 1; 
+        else *PC = *PC + 1; 
+    //NI CONTIDION CHECK
 
     uint32_t outputPC = (*PC * 4);
 
@@ -1801,20 +1958,24 @@ void BNI (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
     *IR = MEM[*PC];
 }
 
-void BNZ (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
-    uint32_t I25 = 0;
+void BNZ (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR) {
+    int32_t I25 = 0;
     //I MASK:
     I25 = (*IR & 0x03FFFFFF);
     uint32_t checkI25 = I25 >> 25;
     if (checkI25 == 1) I25 = ( I25 | 0xFC000000);
 
-    uint32_t BNZ = I25;
+    int32_t BNZ = I25;
     // BNZ = BNZ << 2;
 
     uint32_t initialPC = (*PC * 4);
 
-    if (initialPC == 0X00000290) *PC = *PC + BNZ + 1; 
-    else *PC = *PC + BNZ; 
+    //NZ CONDITION CHECK
+        uint32_t zdNZ = (*SR & 0X00000020);
+        zdNZ= zdNZ >> 5;
+        if (zdNZ == 0) *PC = *PC + 1 + BNZ; 
+        else *PC = *PC + 1; 
+    //NZ CONDITION CHECK
 
     uint32_t outputPC = (*PC * 4);
 
@@ -1831,12 +1992,11 @@ void BUN (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
     uint32_t checkI25 = I25 >> 25;
     if (checkI25 == 1) I25 = ( I25 | 0xFC000000);
 
-    int32_t BUN = I25;
+    uint32_t BUN = I25;
     // BUN = BUN << 2;
 
     //VALOR DE initialPC PARA IMPRESSAO
     uint32_t outputInitialPC = (*PC * 4);
-
 
     *PC = *PC + 1 + BUN; 
 
@@ -1848,20 +2008,24 @@ void BUN (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
     *IR = MEM[*PC];
 }
 
-void BZD (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM) {
-    uint32_t I25 = 0;
+void BZD (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR) {
+    int32_t I25 = 0;
     //I MASK:
     I25 = (*IR & 0x03FFFFFF);
     uint32_t checkI25 = I25 >> 25;
     if (checkI25 == 1) I25 = ( I25 | 0xFC000000);
 
-    uint32_t BZD = I25;
+    int32_t BZD = I25;
     // BZD = BZD << 2;
 
     uint32_t initialPC = (*PC * 4);
 
-    if (initialPC == 0X000002AC) *PC = *PC + BZD + 1; 
-    else *PC = *PC + BZD; 
+    //ZD CONDITION CHECK
+        uint32_t zdZD = (*SR & 0X00000020);
+        zdZD= zdZD >> 5;
+        if (zdZD) *PC = *PC + BZD + 1;
+        *PC = *PC + 1; 
+    //ZD CONDITION CHECK
 
     uint32_t outputPC = (*PC * 4);
 
@@ -1885,12 +2049,34 @@ void setISR (uint32_t *PC, uint32_t *CR, uint32_t *IPC, uint32_t *IR, uint32_t *
     MEM[*SP] = *IPC;
     *SP = *SP - 1;
 
-    *IR = MEM[*PC];
+    // *IR = MEM[*PC];
 
 }
 
+void zeroDIVISION (FILE *output, uint32_t checkIE, uint32_t *CR, uint32_t *IPC, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *SR) {
+    
+    std::fprintf(output, "[SOFTWARE INTERRUPTION]\n");
 
-void INT (FILE *output, uint32_t *CR, uint32_t *IPC, uint32_t *PC, uint32_t *IR, uint32_t *MEM, uint32_t *loopControl) {
+    *CR = 0;
+
+    *IPC = *PC;
+
+    //*PC = 0X00000008;
+    *PC = 0X00000002;
+
+    *IR = MEM[*PC];
+    
+}
+
+void INT (
+    FILE *output, 
+    uint32_t *PC, 
+    uint32_t *IR, 
+    uint32_t *MEM, 
+    uint32_t *loopControl, 
+    uint32_t *softInterrup,
+    uint32_t *cr_value
+) {
     uint32_t I25 = 0;
     //I MASK:
     I25 = (*IR & 0x03FFFFFF);
@@ -1906,20 +2092,37 @@ void INT (FILE *output, uint32_t *CR, uint32_t *IPC, uint32_t *PC, uint32_t *IR,
 
     } else {
 
-        *CR = I25;
+        *softInterrup = 1;
+        *cr_value = I25;
 
-        *IPC = *PC;
+        uint32_t outputPC = 0x0000000C;
 
-        //pc = 0x000000C
-        *PC = 0x0000003;
-
-        uint32_t outputPC = (*PC * 4);
-
-        std::fprintf(output, "0X%08X:\tint %i\tCR=0X%08X,PC=0X%08X\n", initialPC, I25, *CR, outputPC);
-
-        *IR = MEM[*PC];
+        std::fprintf(output, "0X%08X:\tint %i\tCR=0X%08X,PC=0X%08X\n", initialPC, I25, *cr_value, outputPC);
 
     }
+
+}
+
+void INT_INTERRUPTION (
+    FILE *output, 
+    uint32_t *CR, 
+    uint32_t *IPC, 
+    uint32_t *PC, 
+    uint32_t *IR, 
+    uint32_t *MEM,
+    uint32_t *cr_value
+) {
+    
+    *CR = *cr_value;
+
+    *IPC = *PC;
+
+    //pc = 0x000000C
+    *PC = 0x00000003;
+
+    uint32_t outputPC = (*PC * 4);
+
+    *IR = MEM[*PC];
 
 }
 
@@ -1944,8 +2147,6 @@ void RETI (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *SR, uint32_t * SP
 
     *SP = *SP + 1;
     *PC = MEM[*SP];
-    //NEXT INSTRUCTION
-    *PC = *PC + 1;
 
     //VALORES SP3 E PC
     uint32_t sp3 = (*SP * 4);
@@ -2415,16 +2616,17 @@ void SBR (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t * REGISTER, uint32_
 
 void INVALID_INSTRUCTION (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *SR, uint32_t *CR, uint32_t *IPC, uint32_t *MEM) {
 
-    *SR = 0x00000000;
     *SR = (*SR | 0X00000004);
 
     *CR = (*IR & 0XFC000000);
 
     *IPC = *PC;
 
-    *PC = 0x00000004; 
+    // *PC = 0x00000004; 
+    *PC = 0x00000001; 
 
-    std::fprintf(output, "[INVALID INSTRUCTION @ 0X%08X]\n", *IR);   
+    std::fprintf(output, "[INVALID INSTRUCTION @ 0X%08X]\n", *IR);
+    std::fprintf(output, "[SOFTWARE INTERRUPTION]\n");   
 
     *IR = MEM[*PC];
 
@@ -2434,19 +2636,23 @@ void INVALID_INSTRUCTION (FILE *output, uint32_t *PC, uint32_t *IR, uint32_t *SR
 void ck_WATCHDOG(FILE *output, uint32_t *IR, uint32_t *MEM, uint32_t *CR, uint32_t *IPC, uint32_t *PC, uint32_t *WATCHDOG) {
     uint32_t outputPC = (*PC * 4);
 
-    while(*WATCHDOG) {
-        std::fprintf(output, "0X%08X:\tbun -1\tPC=0X%08X\n",outputPC, outputPC);   
+    // uint32_t counter = (*WATCHDOG & 0X7FFFFFFF);
 
-        *WATCHDOG = *WATCHDOG - 1;
-    }
+    *WATCHDOG = (*WATCHDOG & 0X7FFFFFFF);
     
     std::fprintf(output, "[HARDWARE INTERRUPTION 1]\n");
+
+    while(*WATCHDOG) {
+        // std::fprintf(output, "0X%08X:\tbun -1\tPC=0X%08X\n",outputPC, outputPC);   
+        *WATCHDOG -= 1;
+    }
 
     *CR = 0xE1AC04DA;
 
     *IPC = *PC;
 
-    *PC = 0X00000010;
+    // *PC = 0X00000010;
+    *PC = 0X00000004;
 
     *IR = MEM[*PC];
 
@@ -2482,7 +2688,8 @@ void initFPU
 
             *IPC = *PC;
 
-            *PC = 0X00000014;
+            // *PC = 0X00000014;
+            *PC = 0X00000005;
 
             *IR = MEM[*PC];
 
@@ -2496,7 +2703,9 @@ void initFPU
 
             *IPC = *PC;
 
-            *PC = 0X00000014;
+            // *PC = 0X00000014;
+            *PC = 0X00000005;
+
 
             *IR = MEM[*PC];
 
@@ -2510,7 +2719,8 @@ void initFPU
 
             *IPC = *PC;
 
-            *PC = 0X00000014;
+            // *PC = 0X00000014;
+            *PC = 0X00000005;
 
             *IR = MEM[*PC];
 
@@ -2524,7 +2734,8 @@ void initFPU
 
             *IPC = *PC;
 
-            *PC = 0X00000014;
+            // *PC = 0X00000014;
+            *PC = 0X00000005;
 
             *IR = MEM[*PC];
 
@@ -2538,7 +2749,8 @@ void initFPU
 
             *IPC = *PC;
 
-            *PC = 0X00000018;
+            // *PC = 0X00000018;
+            *PC = 0X00000006;
 
             *IR = MEM[*PC];
 
@@ -2552,7 +2764,8 @@ void initFPU
 
             *IPC = *PC;
 
-            *PC = 0X00000018;
+            // *PC = 0X00000018;
+            *PC = 0X00000006;
 
             *IR = MEM[*PC];
 
@@ -2571,7 +2784,8 @@ void initFPU
 
             *IPC = *PC;
 
-            *PC = 0X0000001C;
+            // *PC = 0X0000001C;
+            *PC = 0X00000007;
 
             *IR = MEM[*PC];
 
@@ -2588,7 +2802,8 @@ void initFPU
             
             *IPC = *PC;
 
-            *PC = 0X0000001C;
+            // *PC = 0X0000001C;
+            *PC = 0X00000007;
 
             *IR = MEM[*PC];
 
@@ -2607,7 +2822,8 @@ void initFPU
             
             *IPC = *PC;
 
-            *PC = 0X0000001C;
+            // *PC = 0X0000001C;
+            *PC = 0X00000007;
 
             *IR = MEM[*PC];
 
@@ -2622,6 +2838,23 @@ void initFPU
 // --------------- END OF INTERRUPTION INSTRUCTIONS --------------- // 
 
 
+// ------------- TERMINAL FUNCTION ------------- // 
+
+void printTERMINAL (FILE * output, vector<uint32_t> TERMINAL) {
+    
+    std::fprintf(output, "[TERMINAL]\n");
+
+    uint32_t loop_size = TERMINAL.size();
+
+    for (int i = 0; i < loop_size; i++)
+    {
+        std::fprintf(output, "%c", TERMINAL[i]);
+    }
+    
+
+}
+
+// ------------- TERMINAL FUNCTION ------------- // 
 
 
 int main(int argc, char const *argv[])
@@ -2632,10 +2865,16 @@ int main(int argc, char const *argv[])
         FILE* input = fopen(argv[1], "r");
 	    FILE* output = fopen(argv[2], "w");
 
-    //32KiB MEMORY  => (32764/4) = 8191
+    // ------------- MEMORIES -------------
+        //32KiB uint32_t MEMORY  => (32764/4) = 8191
         uint32_t * MEM = (uint32_t*) calloc(8191, sizeof(uint32_t));
 
-    //Insertion of Hexadecimals to MEMORY
+        //32KiB uint8_t MEMORY 
+        uint8_t * MEM_8BITS = (uint8_t*) calloc(32764, sizeof(uint8_t));
+
+    // ------------- MEMORIES -------------
+    
+    //Insertion of Hexadecimals to MEMORIES
 
         uint32_t line = 0;
         uint32_t memIndex = 0;
@@ -2644,6 +2883,8 @@ int main(int argc, char const *argv[])
             MEM[memIndex] = line;
             ++memIndex;
         }
+
+
     //32 REGISTERS - [0..31]
         uint32_t * REGISTER = (uint32_t *) calloc(32, sizeof(uint32_t));
 
@@ -2670,27 +2911,34 @@ int main(int argc, char const *argv[])
     // ------------------- HARDWARE DEVICES ------------------- //
 
         // ------- TERMINAL -------
-            //&MEM[0x88888888] -> 0x88888888 / 4 ->  0x22222222
-            uint32_t *TERMINAL = &MEM[0x22222222];
+            vector<uint32_t> TERMINAL;
+
+            // -- control vars -- 
+                //each byte lecture for terminal, killer4 increases 1
+                uint32_t killer4 = 0;
+
+                //when killer4 be equal to 4, l8_32BITS'll reset value to 0.
+                uint32_t l8_32BITS = 0;
+            // -- control vars --
+
         // ------- TERMINAL -------
 
         // ------- WATCHDOG -------
-            //&MEM[0x80808080] -> 0x80808080 / 4 -> 0x20202020;
-            uint32_t *WATCHDOG = &MEM[0x20202020];
+            uint32_t WATCHDOG = 0;
         // ------- WATCHDOG -------
 
         // ------- FPU -------
             //X -> &MEM[0X80808880];
-            uint32_t *XFPU = &MEM[0X20202220];
+            uint32_t XFPU = 0;
 
             //Y -> &MEM[0X80808884];
-            uint32_t *YFPU = &MEM[0X20202221];
+            uint32_t YFPU = 0;
 
             //Z -> &MEM[0X80808888];
-            _Float32 *ZFPU = (_Float32*)&MEM[0X20202222];
+            _Float32 ZFPU = 0;
 
             //&MEM[0X8080888C] -> 0X8080888C / 4 -> 0X20202223;
-            uint32_t *FPU = &MEM[0X20202223];
+            uint32_t FPU = 0;
         // ------- FPU -------
 
     // ------------------- END OF HARDWARE DEVICES ------------------- //
@@ -2703,20 +2951,41 @@ int main(int argc, char const *argv[])
     uint32_t opcode = 0;
     uint32_t loopControl = 1;
 
+    uint8_t checkIE[2];
+    uint32_t tempIE = 0;
+
     while(loopControl)
     {
         // --------- PROGRAM CONTROL ---------
             //Getting the opcode
             opcode = (*IR & 0xFC000000) >> 26;
 
-            //Checking WATCHDOG
-            uint32_t checkWD = *WATCHDOG;
-            checkWD = checkWD >> 31;
+            //Check if Hardware interruptions are enabled
+            tempIE = (*SR & 0X00000002);
+            tempIE = tempIE >> 1;
 
-            //Checking FPU
-            uint32_t checkFPU = *FPU;
-            checkFPU = ( checkFPU & 0X00000020);
-            checkFPU = checkFPU >> 5;
+            checkIE[0] = tempIE;
+            tempIE = 0;
+
+                //Checking WATCHDOG
+                uint32_t checkWD = 0;
+                if (WATCHDOG){
+                    checkWD = WATCHDOG;
+                    checkWD = checkWD >> 31;     
+                }
+
+                if (checkWD) checkIE[1] = checkWD;
+                
+                //Checking FPU
+                uint32_t checkFPU = 0;
+                if (FPU) {
+                    checkFPU = FPU;
+                    checkFPU = ( checkFPU & 0X00000020);
+                    checkFPU = checkFPU >> 5;
+                }
+
+                if (checkFPU) checkIE[1] = checkFPU;
+                
         // --------- PROGRAM CONTROL ---------
 
 
@@ -2724,13 +2993,26 @@ int main(int argc, char const *argv[])
             *PC = *PC + 1;
             *IR = MEM[*PC];
 
-        } else if (checkWD) {
-            //[HARDWARE INTERRUPTION 1]
-            ck_WATCHDOG(output, IR, MEM, CR, IPC, PC, WATCHDOG);
+        } else if ( (checkIE[0] == 1) && (checkIE[1] == 1) ) {
+            
+            //PUSHING CR, IPC, PC to MEM.
+            setISR(PC, CR, IPC, IR, MEM, SP);            
 
-        } else if (checkFPU) {
-            //FPU INTERRUPTION
-            initFPU(output, IR, MEM, CR, IPC, PC, XFPU, YFPU, ZFPU, FPU);
+            if (checkWD) {
+                //[HARDWARE INTERRUPTION 1]
+                ck_WATCHDOG(output, IR, MEM, CR, IPC, PC, &WATCHDOG);
+
+                //RESET checkIE
+                checkIE[1] = 0;
+
+            } else if (checkFPU) {
+                //FPU INTERRUPTION
+                initFPU(output, IR, MEM, CR, IPC, PC, &XFPU, &YFPU, &ZFPU, &FPU);
+            
+                //RESET checkIE
+                checkIE[1] = 0;
+
+            }
 
         } else {
         
@@ -2796,8 +3078,17 @@ int main(int argc, char const *argv[])
                     
                         //If is DIV:
                         if (checkIsOp == 0x00000004) {
-                            
-                            DIV(output, CR, IPC, PC, IR, MEM, SR, REGISTER);
+                            uint32_t zeroSTATE = 0;
+                            uint32_t testIE = checkIE[0];
+
+                            DIV(output, CR, IPC, PC, IR, MEM, SR, REGISTER, &zeroSTATE);
+
+                            if (zeroSTATE && testIE) {
+                                setISR(PC, CR, IPC, IR, MEM, SP);
+
+                                zeroDIVISION(output, testIE, CR, IPC, PC, IR, MEM, SR);
+                            }
+
                             break;
                         }
 
@@ -2810,8 +3101,17 @@ int main(int argc, char const *argv[])
 
                         //If is DIVS:
                         if (checkIsOp == 0x00000006) {
+                            uint32_t zeroSTATE = 0;
+                            uint32_t testIE = checkIE[0];
                             
-                            DIVS(output, CR, PC, IPC, IR, MEM, SR, REGISTER);
+                            DIVS(output, CR, PC, IPC, IR, MEM, SR, REGISTER, &zeroSTATE);
+
+                            if (zeroSTATE && testIE) {
+                                setISR(PC, CR, IPC, IR, MEM, SP);
+
+                                zeroDIVISION(output, testIE, CR, IPC, PC, IR, MEM, SR);
+                            }
+
                             break;
                         }
 
@@ -2878,12 +3178,32 @@ int main(int argc, char const *argv[])
                     }        
                 case 0X15:
                     {
-                        DIVI(output, CR, IPC, PC, IR, MEM, SR, REGISTER);
+                        uint32_t zeroSTATE = 0;
+                        uint32_t testIE = checkIE[0];
+
+                        DIVI(output, CR, IPC, PC, IR, MEM, SR, REGISTER, &zeroSTATE);
+
+                        if (zeroSTATE && testIE) {
+                            setISR(PC, CR, IPC, IR, MEM, SP);
+
+                            zeroDIVISION(output, testIE, CR, IPC, PC, IR, MEM, SR);
+                    }
+
                         break;
                     }
                 case 0X16:
                     {
-                        MODI(output, CR, IPC, PC, IR, MEM, SR, REGISTER);
+                        uint32_t zeroSTATE = 0;
+                        uint32_t testIE = checkIE[0];
+
+                        MODI(output, CR, IPC, PC, IR, MEM, SR, REGISTER, &zeroSTATE);
+
+                        if (zeroSTATE && testIE) {
+                            setISR(PC, CR, IPC, IR, MEM, SP);
+
+                            zeroDIVISION(output, testIE, CR, IPC, PC, IR, MEM, SR);
+                        }
+
                         break;
                     }
                 case 0X17:
@@ -2903,12 +3223,12 @@ int main(int argc, char const *argv[])
                     }
                 case 0X1A:
                     {
-                        L32(output, PC, IR, MEM, REGISTER);
+                        L32(output, PC, IR, MEM, REGISTER, &FPU);
                         break;
                     }
                 case 0X1B:
                     {
-                        S8(output, PC, IR, MEM, REGISTER);
+                        S8(output, PC, IR, MEM, REGISTER, TERMINAL);
                         break;
                     }
                 case 0X1C:
@@ -2918,7 +3238,7 @@ int main(int argc, char const *argv[])
                     }
                 case 0X1D:
                     {
-                        S32(output, PC, IR, MEM, REGISTER);
+                        S32(output, PC, IR, MEM, REGISTER, &WATCHDOG, &XFPU, &YFPU, &FPU);
                         break;
                     }
                 case 0X1E:
@@ -2945,67 +3265,67 @@ int main(int argc, char const *argv[])
                     }
                 case 0X2A:
                     {
-                        BAE(output, PC, IR, MEM);
+                        BAE(output, PC, IR, MEM, SR);
                         break;
                     }
                 case 0X2B:
                     {
-                        BAT(output, PC, IR, MEM);
+                        BAT(output, PC, IR, MEM, SR);
                         break;
                     }
                 case 0X2C:
                     {
-                        BBE(output, PC, IR, MEM);
+                        BBE(output, PC, IR, MEM, SR);
                         break;
                     }
                 case 0X2D:
                     {
-                        BBT(output, PC, IR, MEM);
+                        BBT(output, PC, IR, MEM, SR);
                         break;
                     }
                 case 0X2E:
                     {
-                        BEQ(output, PC, IR, MEM);
+                        BEQ(output, PC, IR, MEM, SR);
                         break;
                     }
                 case 0X2F:
                     {
-                         BGE(output, PC, IR, MEM);
+                         BGE(output, PC, IR, MEM, SR);
                         break;
                     }
                 case 0X30:
                     {
-                        BGT(output, PC, IR, MEM);
+                        BGT(output, PC, IR, MEM, SR);
                         break;
                     }
                 case 0X31:
                     {
-                        BIV(output, PC, IR, MEM);
+                        BIV(output, PC, IR, MEM, SR);
                         break;
                     }
                 case 0X32:
                     {
-                        BLE(output, PC, IR, MEM);
+                        BLE(output, PC, IR, MEM, SR);
                         break;
                     }
                 case 0X33:
                     {
-                        BLT(output, PC, IR, MEM);
+                        BLT(output, PC, IR, MEM, SR);
                         break;
                     }   
                 case 0X34:
                     {
-                        BNE(output, PC, IR, MEM);
+                        BNE(output, PC, IR, MEM, SR);
                         break;
                     }
                 case 0X35:
                     {
-                        BNI(output, PC, IR, MEM);
+                        BNI(output, PC, IR, MEM, SR);
                         break;
                     }
                 case 0X36:
                     {
-                        BNZ(output, PC, IR, MEM);
+                        BNZ(output, PC, IR, MEM, SR);
                         break;
                     }
                 case 0X37:
@@ -3015,7 +3335,7 @@ int main(int argc, char const *argv[])
                     }
                 case 0X38:
                     {
-                        BZD(output, PC, IR, MEM);
+                        BZD(output, PC, IR, MEM, SR);
                         break;
                     }
                 case 0X39:
@@ -3025,11 +3345,25 @@ int main(int argc, char const *argv[])
                 }
                 case 0X3F:
                     {
-                        INT(output, CR, IPC, PC, IR, MEM, &loopControl);
+                        uint32_t softInterrup = 0;
+                        uint32_t cr_value = 0;
+
+                        INT(output, PC, IR, MEM, &loopControl, &softInterrup, &cr_value);
+
+                        if (softInterrup) {
+                            setISR(PC, CR, IPC, IR, MEM, SP);
+
+                            INT_INTERRUPTION(output, CR, IPC, PC, IR, MEM, &cr_value);
+                        }
+
+
                         break;
                     }
                 default:
                     {
+                        //PUSHING CR, IPC, PC to MEM.
+                        setISR(PC, CR, IPC, IR, MEM, SP);
+
                         INVALID_INSTRUCTION(output, PC, IR, SR, CR, IPC, MEM);
                         break;
                     }
@@ -3037,6 +3371,12 @@ int main(int argc, char const *argv[])
         }
 
     }
+
+
+    // ------------- TERMINAL OUTPUT -------------
+    printTERMINAL(output, TERMINAL);
+    // ------------- TERMINAL OUTPUT -------------
+
 
     std::fprintf(output, "[END OF SIMULATION]\n");        
 
